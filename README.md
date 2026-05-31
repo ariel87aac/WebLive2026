@@ -11,3 +11,4 @@ inicio de proyecto
 ## Componentes
 
 - [Backend NestJS](backend/README.md)
+- [Frontend Angular](frontend/README.md)
