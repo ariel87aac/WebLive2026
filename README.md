@@ -12,3 +12,23 @@ inicio de proyecto
 
 - [Backend NestJS](backend/README.md)
 - [Frontend Angular](frontend/README.md)
+
+## Infraestructura local
+
+Copiar variables de entorno:
+
+```bash
+cp .env.example .env
+```
+
+Levantar PostgreSQL:
+
+```bash
+docker compose up -d postgres
+```
+
+Detener servicios:
+
+```bash
+docker compose down
+```

@@ -27,6 +27,12 @@ Variables iniciales:
 NODE_ENV=development
 PORT=3000
 FRONTEND_URL=http://localhost:4200
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=weblive2026
+DATABASE_USER=weblive
+DATABASE_PASSWORD=weblive_dev_password
+DATABASE_SSL=false
 ```
 
 ## Comandos
@@ -48,6 +54,29 @@ npm test
 ```
 
 Ejecuta pruebas unitarias.
+
+## Base de datos local
+
+Desde la raiz del repositorio:
+
+```bash
+cp .env.example .env
+docker compose up -d postgres
+```
+
+PostgreSQL quedara disponible en:
+
+```text
+localhost:5432
+```
+
+Credenciales por defecto:
+
+```text
+database: weblive2026
+user: weblive
+password: weblive_dev_password
+```
 
 ## Endpoint inicial
 
