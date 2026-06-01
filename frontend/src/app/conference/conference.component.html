@@ -1,0 +1,161 @@
+<main class="conference">
+  <header class="topbar">
+    <div>
+      <a routerLink="/dashboard">Volver</a>
+      <p class="eyebrow">Sala</p>
+      <h1>{{ room()?.title || 'Conectando sala...' }}</h1>
+    </div>
+    <div class="connection" [class.online]="connected()">
+      {{ connected() ? 'Socket conectado' : 'Socket desconectado' }}
+    </div>
+  </header>
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (mediaError()) {
+    <p class="error">{{ mediaError() }}</p>
+  }
+
+  @if (kicked()) {
+    <p class="error">Fuiste expulsado de la sala por el host.</p>
+  }
+
+  <section class="stage">
+    <div class="video-layout">
+      <div class="video-card main" [class.camera-off]="!cameraEnabled()">
+        <video
+          #localVideo
+          autoplay
+          muted
+          playsinline
+          [class.hidden]="!cameraEnabled() || !mediaReady()"
+        ></video>
+        @if (!mediaReady()) {
+          <div class="video-placeholder">Esperando permisos de camara y microfono</div>
+        }
+        @if (mediaReady() && !cameraEnabled()) {
+          <div class="video-placeholder">Camara apagada</div>
+        }
+        <span class="live">LOCAL</span>
+        <strong>{{ me()?.displayName || 'Tu camara' }}</strong>
+        <small>
+          Mic {{ micEnabled() ? 'on' : 'off' }} / Cam
+          {{ cameraEnabled() ? 'on' : 'off' }}
+        </small>
+      </div>
+
+      @for (remote of remoteStreams(); track remote.socketId) {
+        <app-remote-video [stream]="remote.stream" />
+      }
+    </div>
+
+    <aside class="side-panel">
+      <div class="panel-tabs">
+        <button
+          type="button"
+          [class.active]="activeSidePanel() === 'participants'"
+          (click)="showParticipantsPanel()"
+        >
+          Participantes
+        </button>
+        <button
+          type="button"
+          [class.active]="activeSidePanel() === 'chat'"
+          (click)="showChatPanel()"
+        >
+          Chat
+          @if (messages().length > 0) {
+            <span>{{ messages().length }}</span>
+          }
+        </button>
+      </div>
+
+      <section class="participants-panel" [class.hidden]="activeSidePanel() !== 'participants'">
+        <h2>Participantes</h2>
+        @if (joining()) {
+          <p>Entrando a la sala...</p>
+        }
+
+        @for (participant of participants(); track participant.id) {
+          <article>
+            <strong>{{ participant.displayName }}</strong>
+            <span>
+              Mic {{ participant.micEnabled ? 'on' : 'off' }} · Cam
+              {{ participant.cameraEnabled ? 'on' : 'off' }}
+              @if (participant.handRaised) {
+                · Mano levantada
+              }
+            </span>
+            @if (isHost() && !isSelf(participant)) {
+              <div class="moderation-actions">
+                <button type="button" (click)="toggleParticipantMic(participant)">
+                  {{ participant.micEnabled ? 'Silenciar' : 'Activar mic' }}
+                </button>
+                <button type="button" (click)="toggleParticipantCamera(participant)">
+                  {{ participant.cameraEnabled ? 'Bloquear cam' : 'Activar cam' }}
+                </button>
+                @if (participant.handRaised) {
+                  <button type="button" (click)="lowerHand(participant)">
+                    Bajar mano
+                  </button>
+                }
+                <button type="button" class="danger" (click)="kickParticipant(participant)">
+                  Expulsar
+                </button>
+              </div>
+            }
+          </article>
+        }
+      </section>
+
+      <section class="chat-panel" [class.hidden]="activeSidePanel() !== 'chat'">
+        <h2>Chat</h2>
+        <div class="messages">
+          @if (messages().length === 0) {
+            <p class="empty-chat">Sin mensajes todavia.</p>
+          }
+
+          @for (message of messages(); track message.id) {
+            <article class="chat-message" [class.own]="message.userId === me()?.userId">
+              <strong>{{ message.displayName }}</strong>
+              <p>{{ message.content }}</p>
+            </article>
+          }
+        </div>
+
+        <form class="chat-form" (ngSubmit)="sendChatMessage()">
+          <input
+            name="chatMessage"
+            [(ngModel)]="chatMessage"
+            maxlength="500"
+            placeholder="Escribe un mensaje"
+            autocomplete="off"
+          />
+          <button type="submit" [disabled]="sendingMessage() || !chatMessage.trim()">
+            Enviar
+          </button>
+        </form>
+      </section>
+    </aside>
+  </section>
+
+  <footer class="controls">
+    <button type="button" (click)="toggleMic()">
+      {{ micEnabled() ? 'Silenciar mic' : 'Activar mic' }}
+    </button>
+    <button type="button" (click)="toggleCamera()">
+      {{ cameraEnabled() ? 'Apagar camara' : 'Activar camara' }}
+    </button>
+    @if (!isHost()) {
+      <button type="button" (click)="toggleHand()">
+        {{ me()?.handRaised ? 'Bajar mano' : 'Levantar mano' }}
+      </button>
+    }
+    <span>
+      {{ mediaReady() ? 'Media local activa' : 'Media local pendiente' }} ·
+      {{ lastSignal() || 'Esperando peer WebRTC' }}
+    </span>
+  </footer>
+</main>

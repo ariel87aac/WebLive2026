@@ -1,3 +1,33 @@
 import { Routes } from '@angular/router';
 
-export const routes: Routes = [];
+import { AuthComponent } from './auth/auth.component';
+import { authGuard } from './core/auth.guard';
+import { ConferenceComponent } from './conference/conference.component';
+import { DashboardComponent } from './dashboard/dashboard.component';
+import { JoinRoomComponent } from './join/join-room.component';
+
+export const routes: Routes = [
+  {
+    path: 'auth',
+    component: AuthComponent,
+  },
+  {
+    path: 'dashboard',
+    component: DashboardComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'join/:slug',
+    component: JoinRoomComponent,
+  },
+  {
+    path: 'conference/:slug',
+    component: ConferenceComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: '',
+    pathMatch: 'full',
+    redirectTo: 'auth',
+  },
+];

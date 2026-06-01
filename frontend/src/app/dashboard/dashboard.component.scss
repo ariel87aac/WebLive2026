@@ -1,0 +1,153 @@
+.dashboard {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 64px;
+}
+
+.topbar,
+.create-room form {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar {
+  margin-bottom: 28px;
+}
+
+.eyebrow,
+.status {
+  margin: 0 0 8px;
+  color: #2256d8;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  color: #0c1526;
+  font-size: clamp(2.2rem, 5vw, 4rem);
+}
+
+h2 {
+  color: #0c1526;
+}
+
+.user-box {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: #344258;
+  font-weight: 800;
+}
+
+.create-room {
+  padding: 18px;
+  border: 1px solid #d8dfeb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.create-room form {
+  align-items: end;
+}
+
+label {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+  color: #344258;
+  font-weight: 800;
+}
+
+input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #cfd7e6;
+  border-radius: 8px;
+  font: inherit;
+}
+
+button,
+a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #2256d8;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.user-box button {
+  background: #eef2f8;
+  color: #162033;
+}
+
+.rooms {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.room-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid #d8dfeb;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.room-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.slug,
+.empty {
+  color: #5f6b7d;
+}
+
+.empty {
+  padding: 18px;
+  border: 1px dashed #cfd7e6;
+  border-radius: 8px;
+}
+
+.error {
+  margin-top: 12px;
+  color: #be123c;
+  font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .topbar,
+  .room-card,
+  .create-room form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .room-card,
+  .room-actions {
+    grid-template-columns: 1fr;
+  }
+}
