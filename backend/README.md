@@ -149,6 +149,33 @@ Ejemplo de invitado:
 }
 ```
 
+## Users administrativo
+
+Endpoints protegidos con JWT y rol `admin`:
+
+```http
+POST /users
+GET /users
+GET /users/:id
+PATCH /users/:id
+PATCH /users/:id/deactivate
+DELETE /users/:id
+```
+
+Campos principales:
+
+```json
+{
+  "email": "host@demo.com",
+  "password": "12345678",
+  "displayName": "Host Demo",
+  "role": "host",
+  "isActive": true
+}
+```
+
+El registro publico crea usuarios `host`. Los roles administrativos se gestionan desde este modulo o directamente desde la base local durante desarrollo.
+
 ## Rooms inicial
 
 Endpoints protegidos con JWT:

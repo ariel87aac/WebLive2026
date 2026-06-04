@@ -13,7 +13,6 @@ type LoginPayload = {
 
 type RegisterPayload = LoginPayload & {
   displayName: string;
-  role: 'host';
 };
 
 type GuestPayload = {

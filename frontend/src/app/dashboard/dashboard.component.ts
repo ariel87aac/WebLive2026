@@ -16,6 +16,7 @@ export class DashboardComponent implements OnInit {
   protected user = signal<User | null>(null);
   protected rooms = signal<Room[]>([]);
   protected title = '';
+  protected copiedRoomId = signal<string | null>(null);
   protected error = signal<string | null>(null);
   protected loading = signal(false);
 
@@ -61,6 +62,63 @@ export class DashboardComponent implements OnInit {
 
   protected inviteUrl(room: Room): string {
     return `${window.location.origin}${room.invitationPath}`;
+  }
+
+  protected async copyInvite(room: Room): Promise<void> {
+    const inviteUrl = this.inviteUrl(room);
+
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+    } catch {
+      this.copyWithFallback(inviteUrl);
+    }
+
+    this.copiedRoomId.set(room.id);
+    setTimeout(() => {
+      if (this.copiedRoomId() === room.id) {
+        this.copiedRoomId.set(null);
+      }
+    }, 1800);
+  }
+
+  protected endRoom(room: Room): void {
+    if (room.status === 'ended') {
+      return;
+    }
+
+    this.roomsService.endRoom(room.id).subscribe({
+      next: (updatedRoom) => {
+        this.rooms.set(
+          this.rooms().map((current) =>
+            current.id === updatedRoom.id ? updatedRoom : current,
+          ),
+        );
+      },
+      error: () => this.error.set('No se pudo finalizar la sala.'),
+    });
+  }
+
+  protected roomStatusLabel(room: Room): string {
+    return room.status === 'active' ? 'Activa' : 'Finalizada';
+  }
+
+  protected roomDate(room: Room): string {
+    return new Intl.DateTimeFormat('es-BO', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(room.createdAt));
+  }
+
+  private copyWithFallback(value: string): void {
+    const textArea = document.createElement('textarea');
+
+    textArea.value = value;
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
   }
 
   private loadRooms(): void {

@@ -6,6 +6,7 @@ export type UserResponse = {
   email: string;
   displayName: string;
   role: UserRole;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -16,6 +17,7 @@ export function toUserResponse(user: User): UserResponse {
     email: user.email,
     displayName: user.displayName,
     role: user.role,
+    isActive: user.isActive,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

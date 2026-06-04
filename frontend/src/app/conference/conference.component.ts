@@ -1,14 +1,12 @@
 import {
   Component,
-  ElementRef,
   OnDestroy,
   OnInit,
-  ViewChild,
   computed,
   effect,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 import { Participant, Room } from '../core/models';
@@ -17,23 +15,33 @@ import { ParticipantsApiService } from '../participants/participants-api.service
 import { RoomsService } from '../rooms/rooms.service';
 import { MediaDevicesService } from './media-devices.service';
 import { RealtimeService } from './realtime.service';
+import { LocalVideoComponent } from './local-video.component';
 import { RemoteVideoComponent } from './remote-video.component';
 import { WebrtcService } from './webrtc.service';
 
+type StageLayout = 'fullscreen' | 'mainGuests' | 'grid';
+type ScenePreset = 'midnight' | 'studioBlue' | 'emerald' | 'sunset' | 'custom';
+type BannerStyle = 'lowerThird' | 'ticker' | 'headline';
+
+interface ScenePresetOption {
+  label: string;
+  value: ScenePreset;
+  background: string;
+  accent: string;
+}
+
 @Component({
   selector: 'app-conference',
-  imports: [FormsModule, RouterLink, RemoteVideoComponent],
+  imports: [FormsModule, RouterLink, LocalVideoComponent, RemoteVideoComponent],
   templateUrl: './conference.component.html',
   styleUrl: './conference.component.scss',
 })
 export class ConferenceComponent implements OnInit, OnDestroy {
-  @ViewChild('localVideo')
-  private localVideo?: ElementRef<HTMLVideoElement>;
-
   protected room = signal<Room | null>(null);
   protected error = signal<string | null>(null);
   protected mediaError = computed(() => this.mediaDevicesService.mediaError());
   protected mediaReady = computed(() => this.mediaDevicesService.mediaReady());
+  protected localStream = computed(() => this.mediaDevicesService.localStream());
   protected joining = signal(false);
   protected micEnabled = signal(true);
   protected cameraEnabled = signal(true);
@@ -46,11 +54,58 @@ export class ConferenceComponent implements OnInit, OnDestroy {
   protected isHost = computed(() => this.room()?.hostId === this.me()?.userId);
   protected lastSignal = computed(() => this.realtimeService.lastSignal());
   protected chatMessage = '';
-  protected activeSidePanel = signal<'participants' | 'chat'>('participants');
+  protected activeSidePanel = signal<'participants' | 'chat' | 'scene'>(
+    'participants',
+  );
   protected sendingMessage = signal(false);
+  protected stageLayout = signal<StageLayout>('mainGuests');
+  protected selectedMainParticipantId = signal<string | null>(null);
+  protected scenePreset = signal<ScenePreset>('studioBlue');
+  protected sceneBackground = signal('#07111f');
+  protected sceneAccent = signal('#38bdf8');
+  protected bannerVisible = signal(true);
+  protected bannerText = signal('Bienvenidos a nuestra transmision en vivo');
+  protected bannerStyle = signal<BannerStyle>('lowerThird');
+  protected bannerBackground = signal('#0f172a');
+  protected bannerTextColor = signal('#ffffff');
+  protected scenePresetOptions: ScenePresetOption[] = [
+    {
+      label: 'Studio blue',
+      value: 'studioBlue',
+      background: '#07111f',
+      accent: '#38bdf8',
+    },
+    {
+      label: 'Midnight',
+      value: 'midnight',
+      background: '#050816',
+      accent: '#a78bfa',
+    },
+    {
+      label: 'Emerald',
+      value: 'emerald',
+      background: '#052e2b',
+      accent: '#34d399',
+    },
+    {
+      label: 'Sunset',
+      value: 'sunset',
+      background: '#21110b',
+      accent: '#fb923c',
+    },
+  ];
+  protected mainParticipantId = computed(
+    () =>
+      this.selectedMainParticipantId() ??
+      this.me()?.id ??
+      this.participants()[0]?.id ??
+      null,
+  );
+  protected isLocalMain = computed(() => this.mainParticipantId() === this.me()?.id);
 
   constructor(
     private readonly route: ActivatedRoute,
+    private readonly router: Router,
     private readonly chatService: ChatService,
     private readonly roomsService: RoomsService,
     private readonly participantsApiService: ParticipantsApiService,
@@ -58,9 +113,6 @@ export class ConferenceComponent implements OnInit, OnDestroy {
     private readonly mediaDevicesService: MediaDevicesService,
     private readonly webrtcService: WebrtcService,
   ) {
-    effect(() => {
-      this.attachLocalStream(this.mediaDevicesService.localStream());
-    });
     effect(() => {
       const participant = this.me();
 
@@ -164,8 +216,105 @@ export class ConferenceComponent implements OnInit, OnDestroy {
     this.activeSidePanel.set('chat');
   }
 
+  protected showScenePanel(): void {
+    this.activeSidePanel.set('scene');
+  }
+
+  protected setStageLayout(layout: StageLayout): void {
+    this.stageLayout.set(layout);
+  }
+
+  protected setScenePreset(preset: ScenePreset): void {
+    const selectedPreset = this.scenePresetOptions.find(
+      (option) => option.value === preset,
+    );
+
+    this.scenePreset.set(preset);
+
+    if (selectedPreset) {
+      this.sceneBackground.set(selectedPreset.background);
+      this.sceneAccent.set(selectedPreset.accent);
+    }
+  }
+
+  protected setSceneBackground(color: string): void {
+    this.scenePreset.set('custom');
+    this.sceneBackground.set(color);
+  }
+
+  protected setSceneAccent(color: string): void {
+    this.scenePreset.set('custom');
+    this.sceneAccent.set(color);
+  }
+
+  protected setBannerText(text: string): void {
+    this.bannerText.set(text);
+  }
+
+  protected setBannerStyle(style: BannerStyle): void {
+    this.bannerStyle.set(style);
+  }
+
+  protected setBannerBackground(color: string): void {
+    this.bannerBackground.set(color);
+  }
+
+  protected setBannerTextColor(color: string): void {
+    this.bannerTextColor.set(color);
+  }
+
+  protected toggleBanner(): void {
+    this.bannerVisible.update((visible) => !visible);
+  }
+
+  protected featureLocal(): void {
+    const participant = this.me();
+
+    if (participant) {
+      this.selectedMainParticipantId.set(participant.id);
+    }
+  }
+
+  protected featureParticipant(participant: Participant): void {
+    this.selectedMainParticipantId.set(participant.id);
+  }
+
+  protected isFeatured(participant: Participant): boolean {
+    return this.mainParticipantId() === participant.id;
+  }
+
+  protected leaveConference(): void {
+    void this.router.navigateByUrl('/dashboard');
+  }
+
   protected isSelf(participant: Participant): boolean {
     return this.me()?.id === participant.id;
+  }
+
+  protected participantBySocket(socketId: string): Participant | null {
+    return (
+      this.participants().find((participant) => participant.socketId === socketId) ??
+      null
+    );
+  }
+
+  protected isRemoteFeatured(socketId: string): boolean {
+    const participant = this.participantBySocket(socketId);
+
+    return Boolean(participant && this.mainParticipantId() === participant.id);
+  }
+
+  protected hasMainRemote(): boolean {
+    return this.remoteStreams().some((remote) =>
+      this.isRemoteFeatured(remote.socketId),
+    );
+  }
+
+  protected participantNameBySocket(socketId: string): string {
+    return (
+      this.participants().find((participant) => participant.socketId === socketId)
+        ?.displayName ?? 'Participante remoto'
+    );
   }
 
   private async join(slug: string): Promise<void> {
@@ -192,16 +341,6 @@ export class ConferenceComponent implements OnInit, OnDestroy {
     this.cameraEnabled.set(participant.cameraEnabled);
     this.mediaDevicesService.setMicEnabled(participant.micEnabled);
     this.mediaDevicesService.setCameraEnabled(participant.cameraEnabled);
-  }
-
-  private attachLocalStream(stream: MediaStream | null): void {
-    const video = this.localVideo?.nativeElement;
-
-    if (!video || video.srcObject === stream) {
-      return;
-    }
-
-    video.srcObject = stream;
   }
 
   private loadParticipantsAndConnect(

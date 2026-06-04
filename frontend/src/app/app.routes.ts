@@ -5,6 +5,7 @@ import { authGuard } from './core/auth.guard';
 import { ConferenceComponent } from './conference/conference.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { JoinRoomComponent } from './join/join-room.component';
+import { UsersAdminComponent } from './users/users-admin.component';
 
 export const routes: Routes = [
   {
@@ -23,6 +24,11 @@ export const routes: Routes = [
   {
     path: 'conference/:slug',
     component: ConferenceComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'users',
+    component: UsersAdminComponent,
     canActivate: [authGuard],
   },
   {

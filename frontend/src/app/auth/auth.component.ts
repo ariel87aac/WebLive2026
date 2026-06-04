@@ -39,7 +39,6 @@ export class AuthComponent {
             email: this.form.email,
             password: this.form.password,
             displayName: this.form.displayName,
-            role: 'host',
           });
 
     request.subscribe({

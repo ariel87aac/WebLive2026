@@ -17,6 +17,7 @@ Frontend Angular para la plataforma WebLive2026.
 - Levantar y bajar mano.
 - Moderacion del host: silenciar participante, bloquear camara y expulsar.
 - Chat en tiempo real por sala con historial basico.
+- Pantalla administrativa de usuarios para rol `admin`.
 - Captura local con `getUserMedia`.
 - Peer connections WebRTC iniciales con `offer`, `answer` e `ice-candidate`.
 
@@ -75,6 +76,7 @@ npm test -- --watch=false
 /auth
 /join/:slug
 /dashboard
+/users
 /conference/:slug
 ```
 

@@ -30,7 +30,7 @@ export class AuthService {
       email: registerDto.email,
       passwordHash,
       displayName: registerDto.displayName,
-      role: registerDto.role,
+      role: UserRole.Host,
     });
 
     return this.createAuthResponse(toUserResponse(user));
@@ -41,6 +41,10 @@ export class AuthService {
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('User is inactive');
     }
 
     const passwordMatches = await compare(loginDto.password, user.passwordHash);
@@ -67,7 +71,7 @@ export class AuthService {
   async getProfile(userId: string): Promise<UserResponse> {
     const user = await this.usersService.findById(userId);
 
-    if (!user) {
+    if (!user || !user.isActive) {
       throw new UnauthorizedException('User not found');
     }
 
