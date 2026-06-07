@@ -21,7 +21,12 @@ import { KickParticipantEventDto } from './dto/kick-participant-event.dto';
 import { LeaveRoomEventDto } from './dto/leave-room-event.dto';
 import { ModerateParticipantEventDto } from './dto/moderate-participant-event.dto';
 import { ParticipantStateEventDto } from './dto/participant-state-event.dto';
+import { RoomSceneEventDto } from './dto/room-scene-event.dto';
 import { SignalingEventDto } from './dto/signaling-event.dto';
+import {
+  DEFAULT_ROOM_SCENE_STATE,
+  RoomSceneState,
+} from './room-scene-state.type';
 import { isAllowedCorsOrigin } from '../shared/config/cors-origin';
 
 type SocketUser = {
@@ -69,6 +74,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   server: Server;
 
   private readonly logger = new Logger(RealtimeGateway.name);
+  private readonly sceneStates = new Map<string, RoomSceneState>();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -103,6 +109,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       return;
     }
 
+    if (participant.participantRole === 'spectator') {
+      await this.emitSpectatorCount(client.data.roomSlug);
+      return;
+    }
+
     client.to(this.roomName(client.data.roomSlug)).emit('participant-disconnected', {
       participant,
     });
@@ -112,22 +123,38 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   async handleJoinRoom(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() body: JoinRoomEventDto,
-  ): Promise<{ participant: ParticipantResponse }> {
+  ): Promise<{
+    participant: ParticipantResponse;
+    sceneState: RoomSceneState;
+    spectatorCount: number;
+  }> {
     const user = this.requireUser(client);
     const participant = await this.participantsService.joinRoom(body.slug, user.id, {
       displayName: body.displayName,
       socketId: client.id,
+      accessCode: body.accessCode,
+      participantRole: body.participantRole,
     });
 
     client.data.roomSlug = body.slug;
     client.data.participantId = participant.id;
     await client.join(this.roomName(body.slug));
 
-    client.to(this.roomName(body.slug)).emit('participant-connected', {
-      participant,
-    });
+    if (participant.participantRole === 'spectator') {
+      await this.emitSpectatorCount(body.slug);
+    } else {
+      client.to(this.roomName(body.slug)).emit('participant-connected', {
+        participant,
+      });
+    }
 
-    return { participant };
+    return {
+      participant,
+      sceneState: this.getSceneState(body.slug),
+      spectatorCount: await this.participantsService.countActiveSpectators(
+        body.slug,
+      ),
+    };
   }
 
   @SubscribeMessage('leave-room')
@@ -144,9 +171,14 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     if (slug) {
       await client.leave(this.roomName(slug));
-      client.to(this.roomName(slug)).emit('participant-disconnected', {
-        participant,
-      });
+
+      if (participant.participantRole === 'spectator') {
+        await this.emitSpectatorCount(slug);
+      } else {
+        client.to(this.roomName(slug)).emit('participant-disconnected', {
+          participant,
+        });
+      }
     }
 
     client.data.roomSlug = undefined;
@@ -246,6 +278,25 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     });
 
     return { message };
+  }
+
+  @SubscribeMessage('room-scene-update')
+  async handleRoomSceneUpdate(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() body: RoomSceneEventDto,
+  ): Promise<{ sceneState: RoomSceneState }> {
+    const user = this.requireUser(client);
+    const slug = this.requireRoomSlug(client);
+
+    await this.participantsService.assertRoomHost(slug, user.id);
+
+    const sceneState = this.updateSceneState(slug, body);
+
+    this.server.to(this.roomName(slug)).emit('room-scene-updated', {
+      sceneState,
+    });
+
+    return { sceneState };
   }
 
   @SubscribeMessage('offer')
@@ -353,6 +404,33 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     return `room:${slug}`;
   }
 
+  private getSceneState(slug: string): RoomSceneState {
+    const sceneState = this.sceneStates.get(slug);
+
+    if (sceneState) {
+      return sceneState;
+    }
+
+    const defaultState = { ...DEFAULT_ROOM_SCENE_STATE };
+    this.sceneStates.set(slug, defaultState);
+
+    return defaultState;
+  }
+
+  private updateSceneState(
+    slug: string,
+    updates: RoomSceneEventDto,
+  ): RoomSceneState {
+    const sceneState: RoomSceneState = {
+      ...this.getSceneState(slug),
+      ...updates,
+    };
+
+    this.sceneStates.set(slug, sceneState);
+
+    return sceneState;
+  }
+
   private emitParticipantUpdated(
     client: AuthenticatedSocket,
     participant: ParticipantResponse,
@@ -365,6 +443,12 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     this.server.to(this.roomName(slug)).emit('participant-updated', {
       participant,
+    });
+  }
+
+  private async emitSpectatorCount(slug: string): Promise<void> {
+    this.server.to(this.roomName(slug)).emit('spectator-count-updated', {
+      spectatorCount: await this.participantsService.countActiveSpectators(slug),
     });
   }
 }

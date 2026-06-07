@@ -34,6 +34,9 @@ export class Room {
   @Column({ name: 'is_private', default: false })
   isPrivate: boolean;
 
+  @Column({ name: 'access_code', length: 12, default: 'LIVE2026' })
+  accessCode: string;
+
   @Column({ name: 'host_id' })
   hostId: string;
 

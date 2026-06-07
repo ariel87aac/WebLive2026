@@ -9,19 +9,23 @@ import {
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
-import { Participant, Room } from '../core/models';
+import {
+  BannerStyle,
+  Participant,
+  Room,
+  RoomSceneState,
+  ScenePreset,
+  StageLayout,
+} from '../core/models';
 import { ChatService } from '../chat/chat.service';
 import { ParticipantsApiService } from '../participants/participants-api.service';
+import { RoomAccessService } from '../rooms/room-access.service';
 import { RoomsService } from '../rooms/rooms.service';
 import { MediaDevicesService } from './media-devices.service';
 import { RealtimeService } from './realtime.service';
 import { LocalVideoComponent } from './local-video.component';
 import { RemoteVideoComponent } from './remote-video.component';
 import { WebrtcService } from './webrtc.service';
-
-type StageLayout = 'fullscreen' | 'mainGuests' | 'grid';
-type ScenePreset = 'midnight' | 'studioBlue' | 'emerald' | 'sunset' | 'custom';
-type BannerStyle = 'lowerThird' | 'ticker' | 'headline';
 
 interface ScenePresetOption {
   label: string;
@@ -46,6 +50,12 @@ export class ConferenceComponent implements OnInit, OnDestroy {
   protected micEnabled = signal(true);
   protected cameraEnabled = signal(true);
   protected participants = computed(() => this.realtimeService.participants());
+  protected liveParticipants = computed(() =>
+    this.participants().filter(
+      (participant) => participant.participantRole !== 'spectator',
+    ),
+  );
+  protected spectatorCount = computed(() => this.realtimeService.spectatorCount());
   protected messages = computed(() => this.realtimeService.messages());
   protected remoteStreams = computed(() => this.webrtcService.remoteStreams());
   protected connected = computed(() => this.realtimeService.connected());
@@ -97,10 +107,28 @@ export class ConferenceComponent implements OnInit, OnDestroy {
   protected mainParticipantId = computed(
     () =>
       this.selectedMainParticipantId() ??
+      this.liveParticipants()[0]?.id ??
       this.me()?.id ??
-      this.participants()[0]?.id ??
       null,
   );
+  protected gridTileCount = computed(() => this.remoteStreams().length + 1);
+  protected gridSizeClass = computed(() => {
+    const tileCount = this.gridTileCount();
+
+    if (tileCount === 1) {
+      return 'grid-one';
+    }
+
+    if (tileCount === 2) {
+      return 'grid-two';
+    }
+
+    if (tileCount === 3) {
+      return 'grid-three';
+    }
+
+    return 'grid-many';
+  });
   protected isLocalMain = computed(() => this.mainParticipantId() === this.me()?.id);
 
   constructor(
@@ -108,6 +136,7 @@ export class ConferenceComponent implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly chatService: ChatService,
     private readonly roomsService: RoomsService,
+    private readonly roomAccessService: RoomAccessService,
     private readonly participantsApiService: ParticipantsApiService,
     private readonly realtimeService: RealtimeService,
     private readonly mediaDevicesService: MediaDevicesService,
@@ -118,6 +147,13 @@ export class ConferenceComponent implements OnInit, OnDestroy {
 
       if (participant) {
         this.syncLocalState(participant);
+      }
+    });
+    effect(() => {
+      const sceneState = this.realtimeService.roomSceneState();
+
+      if (sceneState) {
+        this.applySceneState(sceneState);
       }
     });
   }
@@ -222,6 +258,7 @@ export class ConferenceComponent implements OnInit, OnDestroy {
 
   protected setStageLayout(layout: StageLayout): void {
     this.stageLayout.set(layout);
+    this.publishSceneState({ stageLayout: layout });
   }
 
   protected setScenePreset(preset: ScenePreset): void {
@@ -234,37 +271,60 @@ export class ConferenceComponent implements OnInit, OnDestroy {
     if (selectedPreset) {
       this.sceneBackground.set(selectedPreset.background);
       this.sceneAccent.set(selectedPreset.accent);
+      this.publishSceneState({
+        scenePreset: preset,
+        sceneBackground: selectedPreset.background,
+        sceneAccent: selectedPreset.accent,
+      });
+      return;
     }
+
+    this.publishSceneState({ scenePreset: preset });
   }
 
   protected setSceneBackground(color: string): void {
     this.scenePreset.set('custom');
     this.sceneBackground.set(color);
+    this.publishSceneState({
+      scenePreset: 'custom',
+      sceneBackground: color,
+    });
   }
 
   protected setSceneAccent(color: string): void {
     this.scenePreset.set('custom');
     this.sceneAccent.set(color);
+    this.publishSceneState({
+      scenePreset: 'custom',
+      sceneAccent: color,
+    });
   }
 
   protected setBannerText(text: string): void {
     this.bannerText.set(text);
+    this.publishSceneState({ bannerText: text });
   }
 
   protected setBannerStyle(style: BannerStyle): void {
     this.bannerStyle.set(style);
+    this.publishSceneState({ bannerStyle: style });
   }
 
   protected setBannerBackground(color: string): void {
     this.bannerBackground.set(color);
+    this.publishSceneState({ bannerBackground: color });
   }
 
   protected setBannerTextColor(color: string): void {
     this.bannerTextColor.set(color);
+    this.publishSceneState({ bannerTextColor: color });
   }
 
   protected toggleBanner(): void {
-    this.bannerVisible.update((visible) => !visible);
+    const nextValue = !this.bannerVisible();
+
+    this.bannerVisible.set(nextValue);
+    this.publishSceneState({ bannerVisible: nextValue });
   }
 
   protected featureLocal(): void {
@@ -272,11 +332,13 @@ export class ConferenceComponent implements OnInit, OnDestroy {
 
     if (participant) {
       this.selectedMainParticipantId.set(participant.id);
+      this.publishSceneState({ mainParticipantId: participant.id });
     }
   }
 
   protected featureParticipant(participant: Participant): void {
     this.selectedMainParticipantId.set(participant.id);
+    this.publishSceneState({ mainParticipantId: participant.id });
   }
 
   protected isFeatured(participant: Participant): boolean {
@@ -325,12 +387,18 @@ export class ConferenceComponent implements OnInit, OnDestroy {
       const localMediaPromise = this.mediaDevicesService
         .startLocalMedia()
         .catch(() => null);
-      const participant = await this.realtimeService.joinRoom(slug);
+      const participant = await this.realtimeService.joinRoom(
+        slug,
+        undefined,
+        this.roomAccessService.getAccessCode(slug),
+      );
       this.syncLocalState(participant);
       this.loadChatHistory(slug);
       this.loadParticipantsAndConnect(slug, participant, localMediaPromise);
     } catch {
-      this.error.set('No se pudo conectar a la sala en tiempo real.');
+      this.error.set(
+        'No se pudo conectar a la sala. Verifica la clave de acceso.',
+      );
     } finally {
       this.joining.set(false);
     }
@@ -341,6 +409,29 @@ export class ConferenceComponent implements OnInit, OnDestroy {
     this.cameraEnabled.set(participant.cameraEnabled);
     this.mediaDevicesService.setMicEnabled(participant.micEnabled);
     this.mediaDevicesService.setCameraEnabled(participant.cameraEnabled);
+  }
+
+  private applySceneState(sceneState: RoomSceneState): void {
+    this.stageLayout.set(sceneState.stageLayout);
+    this.selectedMainParticipantId.set(sceneState.mainParticipantId);
+    this.scenePreset.set(sceneState.scenePreset);
+    this.sceneBackground.set(sceneState.sceneBackground);
+    this.sceneAccent.set(sceneState.sceneAccent);
+    this.bannerVisible.set(sceneState.bannerVisible);
+    this.bannerText.set(sceneState.bannerText);
+    this.bannerStyle.set(sceneState.bannerStyle);
+    this.bannerBackground.set(sceneState.bannerBackground);
+    this.bannerTextColor.set(sceneState.bannerTextColor);
+  }
+
+  private publishSceneState(sceneState: Partial<RoomSceneState>): void {
+    if (!this.isHost()) {
+      return;
+    }
+
+    this.realtimeService.updateRoomSceneState(sceneState).catch(() => {
+      this.error.set('No se pudo sincronizar la escena con la sala.');
+    });
   }
 
   private loadParticipantsAndConnect(

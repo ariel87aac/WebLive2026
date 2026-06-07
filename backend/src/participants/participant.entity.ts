@@ -11,6 +11,8 @@ import {
 import { Room } from '../rooms/room.entity';
 import { User } from '../users/user.entity';
 
+export type ParticipantRole = 'participant' | 'spectator';
+
 @Entity({ name: 'participants' })
 export class Participant {
   @PrimaryGeneratedColumn('uuid')
@@ -34,6 +36,9 @@ export class Participant {
 
   @Column({ name: 'display_name' })
   displayName: string;
+
+  @Column({ name: 'participant_role', default: 'participant' })
+  participantRole: ParticipantRole;
 
   @Column({ name: 'socket_id', nullable: true, type: 'varchar' })
   socketId: string | null;

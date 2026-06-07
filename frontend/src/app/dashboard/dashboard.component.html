@@ -51,6 +51,9 @@
           </div>
           <h2>{{ room.title }}</h2>
           <p class="slug">/{{ room.slug }}</p>
+          <p class="access-code">
+            Clave: <strong>{{ room.accessCode || 'No disponible' }}</strong>
+          </p>
         </div>
 
         <div class="room-actions">
@@ -65,6 +68,10 @@
             @if (room.status === 'active') {
               <a [routerLink]="['/conference', room.slug]">Entrar</a>
               <a class="secondary-link" [routerLink]="['/join', room.slug]">Invitacion</a>
+              <a class="secondary-link" [routerLink]="['/watch', room.slug]">Transmision</a>
+              <button type="button" class="secondary" (click)="copyWatch(room)">
+                {{ copiedRoomId() === room.id + ':watch' ? 'Copiado' : 'Copiar transmision' }}
+              </button>
               <button type="button" class="danger" (click)="endRoom(room)">
                 Finalizar
               </button>

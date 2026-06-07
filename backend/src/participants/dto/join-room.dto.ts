@@ -1,4 +1,6 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+
+const participantRoles = ['participant', 'spectator'];
 
 export class JoinRoomDto {
   @IsOptional()
@@ -11,4 +13,13 @@ export class JoinRoomDto {
   @IsString()
   @MaxLength(120)
   socketId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(12)
+  accessCode?: string;
+
+  @IsOptional()
+  @IsIn(participantRoles)
+  participantRole?: 'participant' | 'spectator';
 }

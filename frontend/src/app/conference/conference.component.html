@@ -33,7 +33,8 @@
     <section class="video-stage">
       <div class="stage-toolbar">
         <div class="stage-status">
-          <span>{{ participants().length }} participante(s)</span>
+          <span>{{ liveParticipants().length }} participante(s)</span>
+          <span class="spectator-pill">{{ spectatorCount() }} espectador(es)</span>
           <span>{{ mediaReady() ? 'Media local activa' : 'Media pendiente' }}</span>
         </div>
 
@@ -176,7 +177,13 @@
         }
 
         @if (stageLayout() === 'grid') {
-          <div class="video-layout grid">
+          <div
+            class="video-layout grid"
+            [class.grid-one]="gridSizeClass() === 'grid-one'"
+            [class.grid-two]="gridSizeClass() === 'grid-two'"
+            [class.grid-three]="gridSizeClass() === 'grid-three'"
+            [class.grid-many]="gridSizeClass() === 'grid-many'"
+          >
             <app-local-video
               [stream]="localStream()"
               [label]="me()?.displayName || 'Tu camara'"
@@ -210,7 +217,7 @@
           (click)="showParticipantsPanel()"
         >
           Participantes
-          <span>{{ participants().length }}</span>
+          <span>{{ liveParticipants().length }}</span>
         </button>
         <button
           type="button"
@@ -239,7 +246,11 @@
           <p>Entrando a la sala...</p>
         }
 
-        @for (participant of participants(); track participant.id) {
+        <p class="spectator-summary">
+          Espectadores conectados: <strong>{{ spectatorCount() }}</strong>
+        </p>
+
+        @for (participant of liveParticipants(); track participant.id) {
           <article class="participant-card" [class.self]="isSelf(participant)">
             <div class="participant-avatar">
               {{ participant.displayName.charAt(0).toUpperCase() }}

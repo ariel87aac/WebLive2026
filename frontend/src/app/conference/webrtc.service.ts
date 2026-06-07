@@ -40,7 +40,7 @@ export class WebrtcService implements OnDestroy {
     this.subscriptions.unsubscribe();
   }
 
-  initialize(roomSlug: string, localStream: MediaStream): void {
+  initialize(roomSlug: string, localStream: MediaStream | null = null): void {
     this.roomSlug = roomSlug;
     this.localStream = localStream;
   }
@@ -124,11 +124,16 @@ export class WebrtcService implements OnDestroy {
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
     });
 
-    this.localStream?.getTracks().forEach((track) => {
-      if (this.localStream) {
-        peer.addTrack(track, this.localStream);
-      }
-    });
+    if (this.localStream) {
+      this.localStream.getTracks().forEach((track) => {
+        if (this.localStream) {
+          peer.addTrack(track, this.localStream);
+        }
+      });
+    } else {
+      peer.addTransceiver('audio', { direction: 'recvonly' });
+      peer.addTransceiver('video', { direction: 'recvonly' });
+    }
 
     peer.onicecandidate = ({ candidate }) => {
       if (candidate && this.roomSlug) {

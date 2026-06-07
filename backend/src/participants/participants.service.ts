@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 
 import { RoomStatus } from '../rooms/room-status.enum';
 import { Room } from '../rooms/room.entity';
@@ -35,6 +35,10 @@ export class ParticipantsService {
       throw new NotFoundException('User not found');
     }
 
+    if (room.hostId !== user.id && !this.isValidAccessCode(room, joinRoomDto.accessCode)) {
+      throw new ForbiddenException('Invalid room access code');
+    }
+
     const existingActiveParticipant =
       await this.participantsRepository.findOne({
         where: {
@@ -47,21 +51,34 @@ export class ParticipantsService {
     if (existingActiveParticipant) {
       existingActiveParticipant.displayName =
         joinRoomDto.displayName ?? user.displayName;
+      existingActiveParticipant.participantRole =
+        joinRoomDto.participantRole ?? existingActiveParticipant.participantRole;
       existingActiveParticipant.socketId =
         joinRoomDto.socketId ?? existingActiveParticipant.socketId;
+      existingActiveParticipant.micEnabled =
+        existingActiveParticipant.participantRole === 'spectator'
+          ? false
+          : existingActiveParticipant.micEnabled;
+      existingActiveParticipant.cameraEnabled =
+        existingActiveParticipant.participantRole === 'spectator'
+          ? false
+          : existingActiveParticipant.cameraEnabled;
 
       return toParticipantResponse(
         await this.participantsRepository.save(existingActiveParticipant),
       );
     }
 
+    const participantRole = joinRoomDto.participantRole ?? 'participant';
+
     const participant = this.participantsRepository.create({
       roomId: room.id,
       userId: user.id,
       displayName: joinRoomDto.displayName ?? user.displayName,
+      participantRole,
       socketId: joinRoomDto.socketId ?? null,
-      micEnabled: true,
-      cameraEnabled: true,
+      micEnabled: participantRole !== 'spectator',
+      cameraEnabled: participantRole !== 'spectator',
       handRaised: false,
     });
 
@@ -79,11 +96,24 @@ export class ParticipantsService {
       where: {
         roomId: room.id,
         leftAt: IsNull(),
+        participantRole: Not('spectator'),
       },
       order: { joinedAt: 'ASC' },
     });
 
     return participants.map(toParticipantResponse);
+  }
+
+  async countActiveSpectators(slug: string): Promise<number> {
+    const room = await this.findJoinableRoom(slug);
+
+    return this.participantsRepository.count({
+      where: {
+        roomId: room.id,
+        participantRole: 'spectator',
+        leftAt: IsNull(),
+      },
+    });
   }
 
   async updateState(
@@ -204,6 +234,18 @@ export class ParticipantsService {
     return toParticipantResponse(
       await this.participantsRepository.save(participant),
     );
+  }
+
+  async assertRoomHost(slug: string, hostId: string): Promise<void> {
+    const room = await this.findJoinableRoom(slug);
+
+    if (room.hostId !== hostId) {
+      throw new ForbiddenException('Only the host can update this room');
+    }
+  }
+
+  private isValidAccessCode(room: Room, accessCode?: string): boolean {
+    return room.accessCode.toUpperCase() === accessCode?.trim().toUpperCase();
   }
 
   private async findJoinableRoom(slug: string): Promise<Room> {

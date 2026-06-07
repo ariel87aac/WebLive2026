@@ -4,14 +4,20 @@ import { io, Socket } from 'socket.io-client';
 
 import { API_BASE_URL } from '../core/api.config';
 import { AuthTokenService } from '../core/auth-token.service';
-import { Participant, RoomMessage } from '../core/models';
+import { Participant, RoomMessage, RoomSceneState } from '../core/models';
 
 type JoinRoomResponse = {
   participant: Participant;
+  sceneState: RoomSceneState;
+  spectatorCount: number;
 };
 
 type ChatMessageResponse = {
   message: RoomMessage;
+};
+
+type RoomSceneResponse = {
+  sceneState: RoomSceneState;
 };
 
 export type SignalingMessage = {
@@ -32,6 +38,8 @@ export class RealtimeService {
   readonly participant = signal<Participant | null>(null);
   readonly participants = signal<Participant[]>([]);
   readonly messages = signal<RoomMessage[]>([]);
+  readonly roomSceneState = signal<RoomSceneState | null>(null);
+  readonly spectatorCount = signal(0);
   readonly kicked = signal(false);
   readonly lastSignal = signal<string | null>(null);
   readonly offers$ = this.offerSubject.asObservable();
@@ -82,6 +90,12 @@ export class RealtimeService {
     this.socket.on('chat-message', ({ message }) => {
       this.upsertMessage(message);
     });
+    this.socket.on('room-scene-updated', ({ sceneState }) => {
+      this.roomSceneState.set(sceneState);
+    });
+    this.socket.on('spectator-count-updated', ({ spectatorCount }) => {
+      this.spectatorCount.set(spectatorCount);
+    });
     this.socket.on('offer', (message: SignalingMessage) => {
       this.lastSignal.set('offer recibido');
       this.offerSubject.next(message);
@@ -96,13 +110,18 @@ export class RealtimeService {
     });
   }
 
-  joinRoom(slug: string, displayName?: string): Promise<Participant> {
+  joinRoom(
+    slug: string,
+    displayName?: string,
+    accessCode?: string,
+    participantRole: Participant['participantRole'] = 'participant',
+  ): Promise<Participant> {
     this.connect();
 
     return new Promise((resolve, reject) => {
       this.socket?.timeout(5000).emit(
         'join-room',
-        { slug, displayName },
+        { slug, displayName, accessCode, participantRole },
         (
           error: Error | null,
           response?: JoinRoomResponse,
@@ -114,6 +133,8 @@ export class RealtimeService {
 
           this.roomSlug = slug;
           this.participant.set(response.participant);
+          this.roomSceneState.set(response.sceneState);
+          this.spectatorCount.set(response.spectatorCount);
           this.upsertParticipant(response.participant);
           resolve(response.participant);
         },
@@ -165,6 +186,26 @@ export class RealtimeService {
     });
   }
 
+  updateRoomSceneState(
+    sceneState: Partial<RoomSceneState>,
+  ): Promise<RoomSceneState> {
+    return new Promise((resolve, reject) => {
+      this.socket?.timeout(5000).emit(
+        'room-scene-update',
+        sceneState,
+        (error: Error | null, response?: RoomSceneResponse) => {
+          if (error || !response) {
+            reject(error ?? new Error('No room-scene-update response'));
+            return;
+          }
+
+          this.roomSceneState.set(response.sceneState);
+          resolve(response.sceneState);
+        },
+      );
+    });
+  }
+
   leaveRoom(): void {
     const participant = this.participant();
 
@@ -177,6 +218,8 @@ export class RealtimeService {
     this.participant.set(null);
     this.participants.set([]);
     this.messages.set([]);
+    this.roomSceneState.set(null);
+    this.spectatorCount.set(0);
     this.socket?.disconnect();
     this.socket = null;
   }

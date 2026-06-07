@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import { AuthService } from '../auth/auth.service';
 import { Room } from '../core/models';
+import { RoomAccessService } from '../rooms/room-access.service';
 import { RoomsService } from '../rooms/rooms.service';
 
 @Component({
@@ -15,6 +16,7 @@ import { RoomsService } from '../rooms/rooms.service';
 export class JoinRoomComponent implements OnInit {
   protected room = signal<Room | null>(null);
   protected displayName = '';
+  protected accessCode = '';
   protected loading = signal(false);
   protected error = signal<string | null>(null);
 
@@ -22,6 +24,7 @@ export class JoinRoomComponent implements OnInit {
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly roomsService: RoomsService,
+    private readonly roomAccessService: RoomAccessService,
     private readonly authService: AuthService,
   ) {}
 
@@ -42,7 +45,11 @@ export class JoinRoomComponent implements OnInit {
   protected join(): void {
     const room = this.room();
 
-    if (!room || this.displayName.trim().length < 2) {
+    if (
+      !room ||
+      this.displayName.trim().length < 2 ||
+      this.accessCode.trim().length < 3
+    ) {
       return;
     }
 
@@ -50,7 +57,10 @@ export class JoinRoomComponent implements OnInit {
     this.error.set(null);
 
     this.authService.guestLogin({ displayName: this.displayName.trim() }).subscribe({
-      next: () => void this.router.navigate(['/conference', room.slug]),
+      next: () => {
+        this.roomAccessService.setAccessCode(room.slug, this.accessCode);
+        void this.router.navigate(['/conference', room.slug]);
+      },
       error: () => {
         this.error.set('No se pudo entrar como invitado.');
         this.loading.set(false);

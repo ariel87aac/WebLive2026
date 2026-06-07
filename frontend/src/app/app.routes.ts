@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { AuthComponent } from './auth/auth.component';
+import { BroadcastViewComponent } from './broadcast/broadcast-view.component';
 import { authGuard } from './core/auth.guard';
 import { ConferenceComponent } from './conference/conference.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
@@ -20,6 +21,10 @@ export const routes: Routes = [
   {
     path: 'join/:slug',
     component: JoinRoomComponent,
+  },
+  {
+    path: 'watch/:slug',
+    component: BroadcastViewComponent,
   },
   {
     path: 'conference/:slug',

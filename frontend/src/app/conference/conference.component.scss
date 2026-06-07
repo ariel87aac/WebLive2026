@@ -88,6 +88,11 @@ h2 {
   color: #bbf7d0;
 }
 
+.spectator-pill {
+  background: #312e81;
+  color: #ddd6fe;
+}
+
 .alerts {
   display: grid;
   gap: 8px;
@@ -205,6 +210,33 @@ h2 {
   align-content: center;
 }
 
+.video-layout.grid-one {
+  grid-template-columns: minmax(260px, min(68%, 720px));
+  align-content: center;
+  justify-content: center;
+}
+
+.video-layout.grid-two {
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  align-content: center;
+}
+
+.video-layout.grid-three {
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+  grid-template-rows: 1fr 1fr;
+}
+
+.video-layout.grid-three app-local-video:first-child {
+  grid-row: 1 / -1;
+}
+
+.video-layout.grid-one app-local-video,
+.video-layout.grid-one app-remote-video {
+  aspect-ratio: 16 / 9;
+  max-height: calc(100% - 96px);
+  min-height: 220px;
+}
+
 .main-slot {
   display: grid;
   min-height: 0;
@@ -245,6 +277,11 @@ h2 {
 .frame-grid app-local-video,
 .frame-grid app-remote-video {
   min-height: 180px;
+}
+
+.frame-grid .grid-one app-local-video,
+.frame-grid .grid-one app-remote-video {
+  min-height: 220px;
 }
 
 .broadcast-banner {
@@ -506,8 +543,15 @@ h2 {
 }
 
 .participant-info span,
-.empty-chat {
+.empty-chat,
+.spectator-summary {
   color: #5f6b7d;
+}
+
+.spectator-summary {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f3f4f6;
 }
 
 .moderation-actions {
@@ -701,6 +745,24 @@ button:disabled {
 
   .frame-main-guests .main-slot {
     padding-bottom: 92px;
+  }
+
+  .video-layout.grid,
+  .video-layout.grid-one,
+  .video-layout.grid-two,
+  .video-layout.grid-three {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+
+  .video-layout.grid-three app-local-video:first-child {
+    grid-row: auto;
+  }
+
+  .video-layout.grid-one app-local-video,
+  .video-layout.grid-one app-remote-video {
+    max-height: none;
+    min-height: 180px;
   }
 
   .guest-strip {

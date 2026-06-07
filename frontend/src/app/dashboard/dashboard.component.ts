@@ -64,6 +64,10 @@ export class DashboardComponent implements OnInit {
     return `${window.location.origin}${room.invitationPath}`;
   }
 
+  protected watchUrl(room: Room): string {
+    return `${window.location.origin}${room.watchPath}`;
+  }
+
   protected async copyInvite(room: Room): Promise<void> {
     const inviteUrl = this.inviteUrl(room);
 
@@ -76,6 +80,23 @@ export class DashboardComponent implements OnInit {
     this.copiedRoomId.set(room.id);
     setTimeout(() => {
       if (this.copiedRoomId() === room.id) {
+        this.copiedRoomId.set(null);
+      }
+    }, 1800);
+  }
+
+  protected async copyWatch(room: Room): Promise<void> {
+    const watchUrl = this.watchUrl(room);
+
+    try {
+      await navigator.clipboard.writeText(watchUrl);
+    } catch {
+      this.copyWithFallback(watchUrl);
+    }
+
+    this.copiedRoomId.set(`${room.id}:watch`);
+    setTimeout(() => {
+      if (this.copiedRoomId() === `${room.id}:watch`) {
         this.copiedRoomId.set(null);
       }
     }, 1800);

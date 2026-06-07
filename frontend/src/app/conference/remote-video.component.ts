@@ -6,6 +6,7 @@ import {
   Input,
   OnChanges,
   ViewChild,
+  signal,
 } from '@angular/core';
 
 @Component({
@@ -13,6 +14,11 @@ import {
   template: `
     <article class="remote-card" [class.compact]="compact">
       <video #video autoplay playsinline></video>
+      @if (audioBlocked() && !compact) {
+        <button type="button" class="audio-button" (click)="enableAudio()">
+          Activar audio
+        </button>
+      }
       <div class="remote-info">
         <strong>{{ label }}</strong>
       </div>
@@ -78,9 +84,36 @@ import {
       text-shadow: 0 1px 8px rgb(0 0 0 / 0.45);
       white-space: nowrap;
     }
+
+    .audio-button {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 2;
+      min-height: 34px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 8px;
+      background: rgb(15 23 42 / 0.78);
+      color: #ffffff;
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 900;
+      backdrop-filter: blur(10px);
+    }
+
+    .remote-card.compact .audio-button {
+      top: 8px;
+      right: 8px;
+      min-height: 28px;
+      padding: 0 8px;
+      font-size: 0.7rem;
+    }
   `],
 })
 export class RemoteVideoComponent implements AfterViewInit, OnChanges {
+  protected audioBlocked = signal(false);
+
   @Input({ required: true })
   stream!: MediaStream;
 
@@ -106,11 +139,54 @@ export class RemoteVideoComponent implements AfterViewInit, OnChanges {
     queueMicrotask(() => this.attachStream());
   }
 
+  protected async enableAudio(): Promise<void> {
+    const video = this.video?.nativeElement;
+
+    if (!video) {
+      return;
+    }
+
+    video.muted = false;
+
+    try {
+      await video.play();
+      this.audioBlocked.set(false);
+    } catch {
+      this.audioBlocked.set(true);
+    }
+  }
+
   private attachStream(): void {
     const video = this.video?.nativeElement;
 
     if (video && video.srcObject !== this.stream) {
       video.srcObject = this.stream;
+    }
+
+    void this.playWithMobileFallback();
+  }
+
+  private async playWithMobileFallback(): Promise<void> {
+    const video = this.video?.nativeElement;
+
+    if (!video) {
+      return;
+    }
+
+    video.muted = false;
+
+    try {
+      await video.play();
+      this.audioBlocked.set(false);
+    } catch {
+      video.muted = true;
+
+      try {
+        await video.play();
+        this.audioBlocked.set(true);
+      } catch {
+        this.audioBlocked.set(true);
+      }
     }
   }
 }

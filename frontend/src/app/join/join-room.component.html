@@ -25,6 +25,18 @@
           />
         </label>
 
+        <label>
+          Clave de acceso
+          <input
+            name="accessCode"
+            [(ngModel)]="accessCode"
+            autocomplete="one-time-code"
+            required
+            minlength="3"
+            placeholder="Ej. A1B2C3"
+          />
+        </label>
+
         <button type="submit" [disabled]="loading()">
           {{ loading() ? 'Entrando...' : 'Entrar a la sala' }}
         </button>
