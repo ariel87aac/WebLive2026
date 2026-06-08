@@ -7,7 +7,13 @@ import {
   MaxLength,
 } from 'class-validator';
 
-import { BannerStyle, ScenePreset, StageLayout } from '../room-scene-state.type';
+import {
+  BannerStyle,
+  SceneMediaCommand,
+  SceneMediaType,
+  ScenePreset,
+  StageLayout,
+} from '../room-scene-state.type';
 
 const stageLayouts: StageLayout[] = ['fullscreen', 'mainGuests', 'grid'];
 const scenePresets: ScenePreset[] = [
@@ -18,6 +24,13 @@ const scenePresets: ScenePreset[] = [
   'custom',
 ];
 const bannerStyles: BannerStyle[] = ['lowerThird', 'ticker', 'headline'];
+const sceneMediaTypes: SceneMediaType[] = ['none', 'video'];
+const sceneMediaCommands: SceneMediaCommand[] = [
+  'none',
+  'play',
+  'pause',
+  'restart',
+];
 
 export class RoomSceneEventDto {
   @IsOptional()
@@ -36,6 +49,11 @@ export class RoomSceneEventDto {
   @IsOptional()
   @IsHexColor()
   sceneBackground?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  sceneBackgroundImageUrl?: string;
 
   @IsOptional()
   @IsHexColor()
@@ -61,4 +79,31 @@ export class RoomSceneEventDto {
   @IsOptional()
   @IsHexColor()
   bannerTextColor?: string;
+
+  @IsOptional()
+  @IsIn(sceneMediaTypes)
+  sceneMediaType?: SceneMediaType;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  sceneMediaUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  sceneMediaTitle?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  sceneMediaVisible?: boolean;
+
+  @IsOptional()
+  @IsIn(sceneMediaCommands)
+  sceneMediaCommand?: SceneMediaCommand;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  sceneMediaCommandId?: string;
 }

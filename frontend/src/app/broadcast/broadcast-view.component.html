@@ -52,6 +52,7 @@
       [class.frame-main-guests]="stageLayout() === 'mainGuests'"
       [class.frame-grid]="stageLayout() === 'grid'"
       [style.--scene-bg]="sceneBackground()"
+      [style.--scene-bg-image]="sceneBackgroundImageCss()"
       [style.--scene-accent]="sceneAccent()"
       [style.--banner-bg]="bannerBackground()"
       [style.--banner-color]="bannerTextColor()"
@@ -75,23 +76,29 @@
         }
       </button>
 
-      @if (stageLayout() === 'fullscreen') {
-        <div class="video-layout fullscreen">
-          @if (mainRemote()) {
+      <div
+        class="video-layout"
+        [class.fullscreen]="stageLayout() === 'fullscreen'"
+        [class.main-guests]="stageLayout() === 'mainGuests'"
+        [class.grid]="stageLayout() === 'grid'"
+        [class.grid-one]="stageLayout() === 'grid' && remoteStreams().length + (sceneVideoActive() ? 1 : 0) === 1"
+      >
+        @if (stageLayout() === 'grid') {
+          @for (remote of remoteStreams(); track remote.socketId) {
             <app-remote-video
-              [stream]="mainRemote()!.stream"
-              [label]="participantNameBySocket(mainRemote()!.socketId)"
+              [stream]="remote.stream"
+              [label]="participantNameBySocket(remote.socketId)"
             />
-          } @else {
+          }
+
+          @if (remoteStreams().length === 0 && !sceneVideoActive()) {
             <div class="empty-stage">Esperando transmision...</div>
           }
-        </div>
-      }
-
-      @if (stageLayout() === 'mainGuests') {
-        <div class="video-layout main-guests">
+        } @else {
           <div class="main-slot">
-            @if (mainRemote()) {
+            @if (isSceneMediaMain() && sceneVideoActive()) {
+              <div class="scene-media-placeholder"></div>
+            } @else if (mainRemote()) {
               <app-remote-video
                 [stream]="mainRemote()!.stream"
                 [label]="participantNameBySocket(mainRemote()!.socketId)"
@@ -101,34 +108,43 @@
             }
           </div>
 
-          <div class="guest-strip">
-            @for (remote of remoteStreams(); track remote.socketId) {
-              @if (!isMainRemote(remote.socketId)) {
-                <app-remote-video
-                  [stream]="remote.stream"
-                  [label]="participantNameBySocket(remote.socketId)"
-                  [compact]="true"
-                />
+          @if (stageLayout() === 'mainGuests') {
+            <div class="guest-strip">
+              @for (remote of remoteStreams(); track remote.socketId) {
+                @if (!isMainRemote(remote.socketId)) {
+                  <app-remote-video
+                    [stream]="remote.stream"
+                    [label]="participantNameBySocket(remote.socketId)"
+                    [compact]="true"
+                  />
+                }
               }
+            </div>
+          }
+        }
+
+        @if (sceneVideoActive()) {
+          <article
+            class="scene-media-card"
+            [class.compact]="stageLayout() === 'mainGuests' && !isSceneMediaMain()"
+            [class.media-main]="isSceneMediaMain()"
+            [class.hidden]="stageLayout() === 'fullscreen' && !isSceneMediaMain()"
+          >
+            @if (sceneYoutubeEmbedUrl()) {
+              <iframe
+                #sceneYoutubeFrame
+                [src]="sceneYoutubeEmbedUrl()"
+                title="Video de YouTube"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowfullscreen
+              ></iframe>
             }
-          </div>
-        </div>
-      }
-
-      @if (stageLayout() === 'grid') {
-        <div class="video-layout grid" [class.grid-one]="remoteStreams().length === 1">
-          @for (remote of remoteStreams(); track remote.socketId) {
-            <app-remote-video
-              [stream]="remote.stream"
-              [label]="participantNameBySocket(remote.socketId)"
-            />
-          }
-
-          @if (remoteStreams().length === 0) {
-            <div class="empty-stage">Esperando transmision...</div>
-          }
-        </div>
-      }
+            <div class="remote-info">
+              <strong>{{ sceneMediaTitle() || 'Video de YouTube' }}</strong>
+            </div>
+          </article>
+        }
+      </div>
 
       @if (bannerVisible() && bannerText().trim()) {
         <div class="broadcast-banner" [class]="bannerStyle()">

@@ -138,9 +138,12 @@ button {
   overflow: hidden;
   border-radius: 8px;
   background:
+    var(--scene-bg-image),
     radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--scene-accent) 36%, transparent), transparent 30%),
     radial-gradient(circle at 86% 80%, color-mix(in srgb, var(--scene-accent) 18%, transparent), transparent 34%),
     var(--scene-bg);
+  background-position: center;
+  background-size: cover;
 }
 
 .broadcast-frame::before {
@@ -149,6 +152,14 @@ button {
   pointer-events: none;
   border: 12px solid rgb(255 255 255 / 0.035);
   content: "";
+}
+
+.broadcast-frame.frame-fullscreen {
+  padding: 0;
+}
+
+.broadcast-frame.frame-fullscreen::before {
+  border-width: 0;
 }
 
 .video-layout {
@@ -165,13 +176,26 @@ button {
   grid-template-columns: 1fr;
 }
 
+.video-layout.fullscreen,
+.video-layout.fullscreen .main-slot,
+.video-layout.fullscreen app-remote-video,
+.video-layout.fullscreen .scene-media-card {
+  width: 100%;
+  height: 100%;
+}
+
+.video-layout.fullscreen app-remote-video,
+.video-layout.fullscreen .scene-media-card {
+  min-height: 100%;
+}
+
 .video-layout.grid {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 14px;
   align-content: center;
 }
 
-.video-layout.grid-one {
+.video-layout.grid.grid-one {
   grid-template-columns: minmax(260px, min(68%, 760px));
   justify-content: center;
 }
@@ -200,11 +224,104 @@ button {
   backdrop-filter: blur(10px);
 }
 
-.guest-strip app-remote-video {
+.guest-strip app-remote-video,
+.guest-strip .scene-media-card {
   flex: 0 1 190px;
   height: 100px;
   min-width: 128px;
   min-height: 100px;
+}
+
+.scene-media-card {
+  position: relative;
+  display: grid;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 8px;
+  background: #111827;
+}
+
+.scene-media-placeholder {
+  min-height: 0;
+}
+
+.scene-media-card.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.video-layout.fullscreen .scene-media-card.media-main,
+.video-layout.main-guests .scene-media-card.media-main {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.video-layout.main-guests .scene-media-card.compact {
+  position: absolute;
+  bottom: 34px;
+  left: 34px;
+  z-index: 3;
+  width: 190px;
+  height: 100px;
+  min-height: 100px;
+}
+
+.video-layout.main-guests:has(.scene-media-card.compact) .guest-strip {
+  padding-left: 224px;
+}
+
+.scene-media-card video,
+.scene-media-card iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  border: 0;
+  object-fit: cover;
+}
+
+.scene-media-card.compact video,
+.scene-media-card.compact iframe {
+  min-height: 100px;
+}
+
+.scene-media-card::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: 45%;
+  pointer-events: none;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.66));
+  content: "";
+}
+
+.scene-media-card .remote-info {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 1;
+}
+
+.scene-media-card strong {
+  display: block;
+  max-width: min(240px, calc(100vw - 56px));
+  overflow: hidden;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: rgb(15 23 42 / 0.72);
+  color: #ffffff;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.45);
+  white-space: nowrap;
+}
+
+.scene-media-card.compact .remote-info {
+  left: 10px;
+  bottom: 10px;
 }
 
 .empty-stage {
@@ -304,10 +421,23 @@ button {
     overflow-x: auto;
   }
 
-  .guest-strip app-remote-video {
+  .guest-strip app-remote-video,
+  .guest-strip .scene-media-card {
     flex-basis: 132px;
     height: 76px;
     min-height: 76px;
+  }
+
+  .video-layout.main-guests .scene-media-card.compact {
+    bottom: 20px;
+    left: 20px;
+    width: 132px;
+    height: 76px;
+    min-height: 76px;
+  }
+
+  .video-layout.main-guests:has(.scene-media-card.compact) .guest-strip {
+    padding-left: 150px;
   }
 
   .broadcast-banner.lowerThird,

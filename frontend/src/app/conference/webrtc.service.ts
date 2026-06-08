@@ -45,6 +45,16 @@ export class WebrtcService implements OnDestroy {
     this.localStream = localStream;
   }
 
+  async updateLocalStream(localStream: MediaStream | null): Promise<void> {
+    this.localStream = localStream;
+
+    await Promise.all(
+      Array.from(this.peers.values()).map((peer) =>
+        this.replacePeerTracks(peer, localStream),
+      ),
+    );
+  }
+
   async connectToExistingParticipants(
     participants: Participant[],
     currentParticipant: Participant,
@@ -161,6 +171,39 @@ export class WebrtcService implements OnDestroy {
     this.peers.set(targetSocketId, peer);
 
     return peer;
+  }
+
+  private async replacePeerTracks(
+    peer: RTCPeerConnection,
+    localStream: MediaStream | null,
+  ): Promise<void> {
+    const senders = peer.getSenders();
+    const audioTrack = localStream?.getAudioTracks()[0] ?? null;
+    const videoTrack = localStream?.getVideoTracks()[0] ?? null;
+
+    await Promise.all([
+      this.replaceSenderTrack(peer, senders, 'audio', audioTrack, localStream),
+      this.replaceSenderTrack(peer, senders, 'video', videoTrack, localStream),
+    ]);
+  }
+
+  private async replaceSenderTrack(
+    peer: RTCPeerConnection,
+    senders: RTCRtpSender[],
+    kind: 'audio' | 'video',
+    track: MediaStreamTrack | null,
+    localStream: MediaStream | null,
+  ): Promise<void> {
+    const sender = senders.find((current) => current.track?.kind === kind);
+
+    if (sender) {
+      await sender.replaceTrack(track);
+      return;
+    }
+
+    if (track && localStream) {
+      peer.addTrack(track, localStream);
+    }
   }
 
   private upsertRemoteStream(socketId: string, stream: MediaStream): void {

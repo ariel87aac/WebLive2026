@@ -7,10 +7,12 @@ import {
   ViewChild,
   computed,
   effect,
+  inject,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 import { AuthService } from '../auth/auth.service';
 import { Participant, Room, RoomSceneState } from '../core/models';
@@ -30,6 +32,8 @@ type FullscreenElement = HTMLElement & {
   webkitRequestFullscreen?: () => Promise<void> | void;
 };
 
+const SCENE_MEDIA_PARTICIPANT_ID = 'scene-media-source';
+
 @Component({
   selector: 'app-broadcast-view',
   imports: [FormsModule, RemoteVideoComponent],
@@ -37,8 +41,14 @@ type FullscreenElement = HTMLElement & {
   styleUrl: './broadcast-view.component.scss',
 })
 export class BroadcastViewComponent implements OnInit, OnDestroy {
+  private readonly sanitizer = inject(DomSanitizer);
+  private lastSceneMediaCommandId: string | null = null;
+
   @ViewChild('broadcastShell')
   private broadcastShell?: ElementRef<HTMLElement>;
+
+  @ViewChild('sceneYoutubeFrame')
+  private sceneYoutubeFrame?: ElementRef<HTMLIFrameElement>;
 
   protected room = signal<Room | null>(null);
   protected displayName = 'Espectador';
@@ -53,12 +63,45 @@ export class BroadcastViewComponent implements OnInit, OnDestroy {
   protected stageLayout = signal<RoomSceneState['stageLayout']>('mainGuests');
   protected mainParticipantId = signal<string | null>(null);
   protected sceneBackground = signal('#07111f');
+  protected sceneBackgroundImageUrl = signal('');
+  protected sceneBackgroundImageCss = computed(() => {
+    const url = this.sceneBackgroundImageUrl().trim();
+
+    return url ? `url("${url.replaceAll('"', '%22')}")` : 'none';
+  });
   protected sceneAccent = signal('#38bdf8');
   protected bannerVisible = signal(true);
   protected bannerText = signal('Bienvenidos a nuestra transmision en vivo');
   protected bannerStyle = signal<RoomSceneState['bannerStyle']>('lowerThird');
   protected bannerBackground = signal('#0f172a');
   protected bannerTextColor = signal('#ffffff');
+  protected sceneMediaType = signal<RoomSceneState['sceneMediaType']>('none');
+  protected sceneMediaUrl = signal('');
+  protected sceneMediaTitle = signal('Video de escena');
+  protected sceneMediaVisible = signal(false);
+  protected sceneVideoActive = computed(
+    () =>
+      this.sceneMediaVisible() &&
+      this.sceneMediaType() === 'video' &&
+      Boolean(this.sceneYoutubeVideoId()),
+  );
+  protected sceneYoutubeVideoId = computed(() =>
+    this.extractYoutubeVideoId(this.sceneMediaUrl()),
+  );
+  protected sceneYoutubeEmbedUrl = computed<SafeResourceUrl | null>(() => {
+    const videoId = this.sceneYoutubeVideoId();
+
+    if (!this.sceneVideoActive() || !videoId) {
+      return null;
+    }
+
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&rel=0&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`,
+    );
+  });
+  protected isSceneMediaMain = computed(
+    () => this.mainParticipantId() === SCENE_MEDIA_PARTICIPANT_ID,
+  );
   protected mainRemote = computed(() => {
     const selectedId = this.mainParticipantId();
     const streams = this.remoteStreams();
@@ -93,6 +136,7 @@ export class BroadcastViewComponent implements OnInit, OnDestroy {
 
       if (sceneState) {
         this.applySceneState(sceneState);
+        this.applySceneMediaCommand(sceneState);
       }
     });
   }
@@ -203,12 +247,61 @@ export class BroadcastViewComponent implements OnInit, OnDestroy {
     this.stageLayout.set(sceneState.stageLayout);
     this.mainParticipantId.set(sceneState.mainParticipantId);
     this.sceneBackground.set(sceneState.sceneBackground);
+    this.sceneBackgroundImageUrl.set(sceneState.sceneBackgroundImageUrl ?? '');
     this.sceneAccent.set(sceneState.sceneAccent);
     this.bannerVisible.set(sceneState.bannerVisible);
     this.bannerText.set(sceneState.bannerText);
     this.bannerStyle.set(sceneState.bannerStyle);
     this.bannerBackground.set(sceneState.bannerBackground);
     this.bannerTextColor.set(sceneState.bannerTextColor);
+    this.sceneMediaType.set(sceneState.sceneMediaType ?? 'none');
+    this.sceneMediaUrl.set(sceneState.sceneMediaUrl ?? '');
+    this.sceneMediaTitle.set(sceneState.sceneMediaTitle ?? 'Video de YouTube');
+    this.sceneMediaVisible.set(sceneState.sceneMediaVisible ?? false);
+  }
+
+  private applySceneMediaCommand(sceneState: RoomSceneState): void {
+    if (
+      !sceneState.sceneMediaCommandId ||
+      sceneState.sceneMediaCommandId === this.lastSceneMediaCommandId ||
+      sceneState.sceneMediaCommand === 'none'
+    ) {
+      return;
+    }
+
+    this.lastSceneMediaCommandId = sceneState.sceneMediaCommandId;
+    queueMicrotask(() => this.postYoutubeCommand(sceneState.sceneMediaCommand));
+  }
+
+  private postYoutubeCommand(command: RoomSceneState['sceneMediaCommand']): void {
+    if (!this.sceneYoutubeFrame?.nativeElement.contentWindow) {
+      return;
+    }
+
+    if (command === 'restart') {
+      this.sendYoutubeMessage('seekTo', [0, true]);
+      this.sendYoutubeMessage('playVideo');
+      return;
+    }
+
+    if (command === 'play') {
+      this.sendYoutubeMessage('playVideo');
+    }
+
+    if (command === 'pause') {
+      this.sendYoutubeMessage('pauseVideo');
+    }
+  }
+
+  private sendYoutubeMessage(func: string, args: unknown[] = []): void {
+    this.sceneYoutubeFrame?.nativeElement.contentWindow?.postMessage(
+      JSON.stringify({
+        event: 'command',
+        func,
+        args,
+      }),
+      'https://www.youtube.com',
+    );
   }
 
   private async enterFullscreen(): Promise<void> {
@@ -258,5 +351,34 @@ export class BroadcastViewComponent implements OnInit, OnDestroy {
     return Boolean(
       document.fullscreenElement || fullscreenDocument.webkitFullscreenElement,
     );
+  }
+
+  private extractYoutubeVideoId(url: string): string | null {
+    try {
+      const parsedUrl = new URL(url.trim());
+      const hostname = parsedUrl.hostname.replace(/^www\./, '');
+
+      if (hostname === 'youtu.be') {
+        return parsedUrl.pathname.split('/').filter(Boolean)[0] ?? null;
+      }
+
+      if (!hostname.endsWith('youtube.com')) {
+        return null;
+      }
+
+      if (parsedUrl.pathname === '/watch') {
+        return parsedUrl.searchParams.get('v');
+      }
+
+      const [kind, id] = parsedUrl.pathname.split('/').filter(Boolean);
+
+      if (['embed', 'shorts', 'live'].includes(kind)) {
+        return id ?? null;
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
   }
 }
