@@ -7,6 +7,7 @@ inicio de proyecto
 
 - [Requerimientos del sistema](docs/requerimientos.md)
 - [Backlog MVP](docs/backlog-mvp.md)
+- [Despliegue aaPanel ISLMTV](docs/despliegue-aapanel-islmtv.md)
 
 ## Componentes
 

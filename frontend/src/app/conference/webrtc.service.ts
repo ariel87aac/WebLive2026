@@ -1,6 +1,7 @@
 import { Injectable, OnDestroy, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 
+import { WEBRTC_ICE_SERVERS } from '../core/api.config';
 import { Participant } from '../core/models';
 import { RealtimeService, SignalingMessage } from './realtime.service';
 
@@ -130,9 +131,7 @@ export class WebrtcService implements OnDestroy {
       return existingPeer;
     }
 
-    const peer = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-    });
+    const peer = new RTCPeerConnection({ iceServers: WEBRTC_ICE_SERVERS });
 
     if (this.localStream) {
       this.localStream.getTracks().forEach((track) => {

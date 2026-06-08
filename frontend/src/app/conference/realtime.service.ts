@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 
-import { API_BASE_URL } from '../core/api.config';
+import { SOCKET_BASE_URL } from '../core/api.config';
 import { AuthTokenService } from '../core/auth-token.service';
 import { Participant, RoomMessage, RoomSceneState } from '../core/models';
 
@@ -59,7 +59,7 @@ export class RealtimeService {
       throw new Error('Missing access token');
     }
 
-    this.socket = io(API_BASE_URL, {
+    this.socket = io(SOCKET_BASE_URL, {
       auth: { token },
       transports: ['websocket'],
       reconnection: true,
