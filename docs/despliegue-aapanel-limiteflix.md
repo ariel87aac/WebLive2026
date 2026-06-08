@@ -32,7 +32,7 @@ Abrir en firewall del proveedor y aaPanel:
 49152-65535/udp
 ```
 
-Los puertos internos `3000` y `8080` quedan ligados a `127.0.0.1`, no publicos.
+Los puertos internos del VPS quedan ligados a `127.0.0.1`, no publicos. La API se publica internamente en `3010` para evitar conflictos con otros sistemas Node.js.
 
 ## 3. Instalar Docker en aaPanel
 
@@ -83,7 +83,7 @@ POSTGRES_DB=weblive2026
 POSTGRES_USER=weblive
 POSTGRES_PASSWORD=CAMBIAR_PASSWORD_DB
 
-BACKEND_HOST_PORT=3000
+BACKEND_HOST_PORT=3010
 FRONTEND_HOST_PORT=8080
 
 NODE_ENV=production
@@ -112,10 +112,11 @@ TURN_CERT_DIR=/www/server/panel/vhost/cert/liveturn.limiteflix.com
 
 ## 6. Configurar frontend runtime
 
-Editar:
+Crear desde la plantilla y editar:
 
 ```bash
-nano deploy/frontend/weblive-config.js
+cp deploy/frontend/weblive-config.example.js deploy/frontend/weblive-config.local.js
+nano deploy/frontend/weblive-config.local.js
 ```
 
 Contenido:
@@ -132,10 +133,11 @@ window.__WEBLIVE_CONFIG__ = {
 
 ## 7. Configurar Coturn
 
-Editar:
+Crear desde la plantilla y editar:
 
 ```bash
-nano deploy/coturn/turnserver.conf
+cp deploy/coturn/turnserver.example.conf deploy/coturn/turnserver.local.conf
+nano deploy/coturn/turnserver.local.conf
 ```
 
 Cambiar:
@@ -145,7 +147,7 @@ external-ip=SERVER_PUBLIC_IP
 user=weblive:CAMBIAR_PASSWORD_TURN
 ```
 
-El password TURN debe coincidir con `turnCredential` en `deploy/frontend/weblive-config.js`.
+El password TURN debe coincidir con `turnCredential` en `deploy/frontend/weblive-config.local.js`.
 
 ## 8. Crear certificados SSL en aaPanel
 
@@ -224,8 +226,10 @@ docs/aapanel-liveapi.limiteflix.com.nginx.conf
 Ese sitio proxifica al backend container:
 
 ```txt
-http://127.0.0.1:3000
+http://127.0.0.1:3010
 ```
+
+En esta configuracion Docker, el contenedor NestJS escucha internamente en `3000`, pero el VPS lo expone en `3010`.
 
 Debe conservar la seccion `/socket.io/` con headers `Upgrade`.
 

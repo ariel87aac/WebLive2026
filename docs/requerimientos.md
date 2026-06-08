@@ -732,7 +732,7 @@ En produccion no se aceptan origenes LAN automaticamente.
 | Servicio | Dominio/Puerto | Descripcion |
 | --- | --- | --- |
 | Frontend Angular | `https://live.limiteflix.com` | SPA servida por contenedor Nginx y proxy aaPanel. |
-| Backend NestJS | `127.0.0.1:3000` interno | API REST y Socket.IO en contenedor. |
+| Backend NestJS | `127.0.0.1:3010` en el VPS | API REST y Socket.IO en contenedor. NestJS escucha en `3000` dentro del contenedor. |
 | API publica | `https://liveapi.limiteflix.com` | Reverse proxy Nginx. |
 | PostgreSQL | Red Docker interna | Base de datos en contenedor. |
 | Coturn | `liveturn.limiteflix.com:3478/5349` | STUN/TURN en contenedor con `network_mode: host`. |

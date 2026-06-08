@@ -49,7 +49,7 @@ services:
       migrate:
         condition: service_completed_successfully
     ports:
-      - "127.0.0.1:${BACKEND_HOST_PORT:-3000}:3000"
+      - "127.0.0.1:${BACKEND_HOST_PORT:-3010}:3000"
     networks:
       - weblive_internal
     healthcheck:
@@ -74,7 +74,7 @@ services:
     ports:
       - "127.0.0.1:${FRONTEND_HOST_PORT:-8080}:80"
     volumes:
-      - ./deploy/frontend/weblive-config.js:/usr/share/nginx/html/weblive-config.js:ro
+      - ./deploy/frontend/weblive-config.local.js:/usr/share/nginx/html/weblive-config.js:ro
     networks:
       - weblive_internal
 
@@ -84,7 +84,7 @@ services:
     restart: unless-stopped
     network_mode: host
     volumes:
-      - ./deploy/coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - ./deploy/coturn/turnserver.local.conf:/etc/coturn/turnserver.conf:ro
       - ${TURN_CERT_DIR:-/www/server/panel/vhost/cert/liveturn.limiteflix.com}:/certs/liveturn.limiteflix.com:ro
     command: ["-c", "/etc/coturn/turnserver.conf"]
 

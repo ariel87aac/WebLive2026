@@ -1,5 +1,8 @@
 .env
 .env.local
+.env.production
+deploy/frontend/weblive-config.local.js
+deploy/coturn/turnserver.local.conf
 
 # Dependencies
 node_modules

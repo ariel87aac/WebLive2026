@@ -88,4 +88,4 @@ Y abre desde el celular:
 https://192.168.1.50:4200
 ```
 
-Si el navegador muestra advertencia por certificado local, acepta o confia el certificado para esta prueba.
+Si el navegador muestra advertencia por certificado local, acepta o confia el certificado para esta prueba
