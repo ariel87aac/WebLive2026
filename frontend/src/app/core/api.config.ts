@@ -1,6 +1,6 @@
-const productionWebHost = 'live.islmtv.com';
-const productionApiUrl = 'https://liveapi.islmtv.com';
-const productionTurnHost = 'liveturn.islmtv.com';
+const productionWebHost = 'live.limiteflix.com';
+const productionApiUrl = 'https://liveapi.limiteflix.com';
+const productionTurnHost = 'liveturn.limiteflix.com';
 
 type RuntimeConfig = {
   apiBaseUrl?: string;

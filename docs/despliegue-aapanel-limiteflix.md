@@ -1,19 +1,19 @@
-# Despliegue aaPanel - ISLMTV
+# Despliegue aaPanel - Limiteflix
 
 Dominios de produccion:
 
-- Frontend Angular: `https://live.islmtv.com`
-- Backend NestJS + Socket.IO: `https://liveapi.islmtv.com`
-- TURN/STUN Coturn: `liveturn.islmtv.com`
+- Frontend Angular: `https://live.limiteflix.com`
+- Backend NestJS + Socket.IO: `https://liveapi.limiteflix.com`
+- TURN/STUN Coturn: `liveturn.limiteflix.com`
 
 ## DNS
 
 Crear registros `A` apuntando a la IP publica del servidor:
 
 ```txt
-live.islmtv.com      A    SERVER_PUBLIC_IP
-liveapi.islmtv.com   A    SERVER_PUBLIC_IP
-liveturn.islmtv.com  A    SERVER_PUBLIC_IP
+live.limiteflix.com      A    SERVER_PUBLIC_IP
+liveapi.limiteflix.com   A    SERVER_PUBLIC_IP
+liveturn.limiteflix.com  A    SERVER_PUBLIC_IP
 ```
 
 ## Puertos
@@ -47,8 +47,8 @@ Editar:
 NODE_ENV=production
 HOST=127.0.0.1
 PORT=3000
-FRONTEND_URL=https://live.islmtv.com
-FRONTEND_URLS=https://live.islmtv.com
+FRONTEND_URL=https://live.limiteflix.com
+FRONTEND_URLS=https://live.limiteflix.com
 HTTPS_ENABLED=false
 DATABASE_SYNCHRONIZE=false
 JWT_SECRET=CAMBIAR_POR_UN_SECRETO_LARGO
@@ -98,9 +98,9 @@ Contenido esperado:
 
 ```js
 window.__WEBLIVE_CONFIG__ = {
-  apiBaseUrl: 'https://liveapi.islmtv.com',
-  socketBaseUrl: 'https://liveapi.islmtv.com',
-  turnUrl: 'turns:liveturn.islmtv.com:5349',
+  apiBaseUrl: 'https://liveapi.limiteflix.com',
+  socketBaseUrl: 'https://liveapi.limiteflix.com',
+  turnUrl: 'turns:liveturn.limiteflix.com:5349',
   turnUsername: 'weblive',
   turnCredential: 'CHANGE_ME_TURN_PASSWORD',
 };
@@ -110,15 +110,15 @@ window.__WEBLIVE_CONFIG__ = {
 
 Crear dos sitios:
 
-- `live.islmtv.com`
-- `liveapi.islmtv.com`
+- `live.limiteflix.com`
+- `liveapi.limiteflix.com`
 
 Activar SSL en ambos desde aaPanel.
 
 Usar como base:
 
-- `docs/aapanel-live.islmtv.com.nginx.conf`
-- `docs/aapanel-liveapi.islmtv.com.nginx.conf`
+- `docs/aapanel-live.limiteflix.com.nginx.conf`
+- `docs/aapanel-liveapi.limiteflix.com.nginx.conf`
 
 ## Coturn
 
@@ -132,7 +132,7 @@ sudo apt install coturn
 Usar como base:
 
 ```txt
-docs/liveturn.islmtv.com.turnserver.conf
+docs/liveturn.limiteflix.com.turnserver.conf
 ```
 
 Reemplazar:
@@ -161,13 +161,13 @@ sudo systemctl status coturn
 API:
 
 ```bash
-curl https://liveapi.islmtv.com/health
+curl https://liveapi.limiteflix.com/health
 ```
 
 Frontend:
 
 ```txt
-https://live.islmtv.com
+https://live.limiteflix.com
 ```
 
 Socket.IO debe conectar desde la consola del navegador sin errores CORS.
