@@ -9,7 +9,6 @@ import {
 } from 'typeorm';
 
 import { Room } from '../rooms/room.entity';
-import { User } from '../users/user.entity';
 
 export type ParticipantRole = 'participant' | 'spectator';
 
@@ -19,7 +18,7 @@ export class Participant {
   id: string;
 
   @Index()
-  @Column({ name: 'room_id' })
+  @Column({ name: 'room_id', type: 'uuid' })
   roomId: string;
 
   @ManyToOne(() => Room, { nullable: false, onDelete: 'CASCADE' })
@@ -27,12 +26,8 @@ export class Participant {
   room: Room;
 
   @Index()
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
-
-  @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
-  user: User;
 
   @Column({ name: 'display_name' })
   displayName: string;

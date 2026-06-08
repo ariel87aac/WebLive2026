@@ -73,6 +73,7 @@ export class BroadcastViewComponent implements OnInit, OnDestroy {
   protected bannerVisible = signal(true);
   protected bannerText = signal('Bienvenidos a nuestra transmision en vivo');
   protected bannerStyle = signal<RoomSceneState['bannerStyle']>('lowerThird');
+  protected bannerSize = signal<RoomSceneState['bannerSize']>('medium');
   protected bannerBackground = signal('#0f172a');
   protected bannerTextColor = signal('#ffffff');
   protected sceneMediaType = signal<RoomSceneState['sceneMediaType']>('none');
@@ -252,6 +253,7 @@ export class BroadcastViewComponent implements OnInit, OnDestroy {
     this.bannerVisible.set(sceneState.bannerVisible);
     this.bannerText.set(sceneState.bannerText);
     this.bannerStyle.set(sceneState.bannerStyle);
+    this.bannerSize.set(sceneState.bannerSize ?? 'medium');
     this.bannerBackground.set(sceneState.bannerBackground);
     this.bannerTextColor.set(sceneState.bannerTextColor);
     this.sceneMediaType.set(sceneState.sceneMediaType ?? 'none');

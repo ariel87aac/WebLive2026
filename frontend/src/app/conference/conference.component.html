@@ -193,7 +193,15 @@
         </div>
 
         @if (bannerVisible() && bannerText().trim()) {
-          <div class="broadcast-banner" [class]="bannerStyle()">
+          <div
+            class="broadcast-banner"
+            [class.lowerThird]="bannerStyle() === 'lowerThird'"
+            [class.ticker]="bannerStyle() === 'ticker'"
+            [class.headline]="bannerStyle() === 'headline'"
+            [class.size-small]="bannerSize() === 'small'"
+            [class.size-medium]="bannerSize() === 'medium'"
+            [class.size-large]="bannerSize() === 'large'"
+          >
             <span>{{ bannerText() }}</span>
           </div>
         }
@@ -420,6 +428,30 @@
                 (click)="setBannerStyle('headline')"
               >
                 Titulo
+              </button>
+            </div>
+
+            <div class="segmented-control">
+              <button
+                type="button"
+                [class.active]="bannerSize() === 'small'"
+                (click)="setBannerSize('small')"
+              >
+                Pequeno
+              </button>
+              <button
+                type="button"
+                [class.active]="bannerSize() === 'medium'"
+                (click)="setBannerSize('medium')"
+              >
+                Mediano
+              </button>
+              <button
+                type="button"
+                [class.active]="bannerSize() === 'large'"
+                (click)="setBannerSize('large')"
+              >
+                Grande
               </button>
             </div>
           </div>

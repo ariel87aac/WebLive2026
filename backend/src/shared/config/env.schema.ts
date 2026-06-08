@@ -34,6 +34,7 @@ export const envSchema = z.object({
   DATABASE_USER: z.string().default('weblive'),
   DATABASE_PASSWORD: z.string().default('weblive_dev_password'),
   DATABASE_SSL: booleanStringSchema.default(false),
+  DATABASE_SYNCHRONIZE: booleanStringSchema.default(false),
   JWT_SECRET: z.string().min(16).default('change_me_in_real_environments'),
   JWT_EXPIRES_IN: jwtExpiresInSchema,
 });

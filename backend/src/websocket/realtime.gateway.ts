@@ -32,6 +32,7 @@ import { isAllowedCorsOrigin } from '../shared/config/cors-origin';
 type SocketUser = {
   id: string;
   email: string;
+  displayName: string;
   role: string;
 };
 
@@ -46,6 +47,7 @@ type AuthenticatedSocket = Socket & {
 type JwtPayload = {
   sub: string;
   email: string;
+  displayName?: string;
   role: string;
 };
 
@@ -95,6 +97,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       client.data.user = {
         id: payload.sub,
         email: payload.email,
+        displayName: payload.displayName ?? 'Invitado',
         role: payload.role,
       };
     } catch {

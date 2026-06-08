@@ -338,14 +338,34 @@ button {
 
 .broadcast-banner {
   position: absolute;
-  z-index: 4;
+  z-index: 8;
   display: flex;
   align-items: center;
   max-width: calc(100% - 64px);
   overflow: hidden;
   color: var(--banner-color);
+  font-size: var(--banner-font-size, 1.1rem);
   font-weight: 900;
+  line-height: 1.15;
   text-shadow: 0 1px 8px rgb(0 0 0 / 0.3);
+}
+
+.broadcast-banner.size-small {
+  --banner-font-size: 0.92rem;
+  --banner-height: 44px;
+  --banner-pad-x: 16px;
+}
+
+.broadcast-banner.size-medium {
+  --banner-font-size: 1.1rem;
+  --banner-height: 56px;
+  --banner-pad-x: 24px;
+}
+
+.broadcast-banner.size-large {
+  --banner-font-size: clamp(1.3rem, 2.6vw, 2rem);
+  --banner-height: 72px;
+  --banner-pad-x: 32px;
 }
 
 .broadcast-banner span {
@@ -357,8 +377,8 @@ button {
 .broadcast-banner.lowerThird {
   left: 40px;
   bottom: 40px;
-  min-height: 52px;
-  padding: 0 20px;
+  min-height: var(--banner-height, 56px);
+  padding: 0 var(--banner-pad-x, 24px);
   border-left: 5px solid var(--scene-accent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--banner-bg) 88%, transparent);
@@ -370,21 +390,21 @@ button {
   bottom: 0;
   left: 0;
   max-width: none;
-  min-height: 56px;
-  padding: 0 28px;
+  min-height: var(--banner-height, 56px);
+  padding: 0 var(--banner-pad-x, 24px);
   border-top: 3px solid var(--scene-accent);
   background: var(--banner-bg);
+  box-shadow: 0 -16px 42px rgb(0 0 0 / 0.24);
 }
 
 .broadcast-banner.headline {
   right: 50%;
   bottom: 42px;
-  min-height: 64px;
-  padding: 0 26px;
+  min-height: var(--banner-height, 64px);
+  padding: 0 var(--banner-pad-x, 26px);
   border: 1px solid color-mix(in srgb, var(--scene-accent) 55%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--banner-bg) 84%, transparent);
-  font-size: clamp(1.1rem, 2.4vw, 2rem);
   transform: translateX(50%);
 }
 
@@ -394,7 +414,7 @@ button {
 }
 
 .frame-main-guests .broadcast-banner.ticker {
-  bottom: 134px;
+  bottom: 0;
 }
 
 @media (max-width: 720px) {
@@ -455,6 +475,6 @@ button {
   }
 
   .frame-main-guests .broadcast-banner.ticker {
-    bottom: 86px;
+    bottom: 0;
   }
 }

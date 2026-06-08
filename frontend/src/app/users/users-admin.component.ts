@@ -41,7 +41,7 @@ export class UsersAdminComponent implements OnInit {
     () => this.users().filter((user) => user.isActive).length,
   );
   protected inactiveUsers = computed(() => this.users().length - this.activeUsers());
-  protected roles: UserRole[] = ['admin', 'host', 'guest', 'viewer'];
+  protected roles: UserRole[] = ['admin', 'host', 'viewer'];
 
   constructor(
     private readonly authService: AuthService,

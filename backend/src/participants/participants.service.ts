@@ -30,12 +30,11 @@ export class ParticipantsService {
   ): Promise<ParticipantResponse> {
     const room = await this.findJoinableRoom(slug);
     const user = await this.usersService.findById(userId);
+    const isHost = room.hostId === userId;
+    const displayName =
+      joinRoomDto.displayName?.trim() ?? user?.displayName ?? 'Invitado';
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    if (room.hostId !== user.id && !this.isValidAccessCode(room, joinRoomDto.accessCode)) {
+    if (!isHost && !this.isValidAccessCode(room, joinRoomDto.accessCode)) {
       throw new ForbiddenException('Invalid room access code');
     }
 
@@ -43,14 +42,13 @@ export class ParticipantsService {
       await this.participantsRepository.findOne({
         where: {
           roomId: room.id,
-          userId: user.id,
+          userId,
           leftAt: IsNull(),
         },
       });
 
     if (existingActiveParticipant) {
-      existingActiveParticipant.displayName =
-        joinRoomDto.displayName ?? user.displayName;
+      existingActiveParticipant.displayName = displayName;
       existingActiveParticipant.participantRole =
         joinRoomDto.participantRole ?? existingActiveParticipant.participantRole;
       existingActiveParticipant.socketId =
@@ -73,8 +71,8 @@ export class ParticipantsService {
 
     const participant = this.participantsRepository.create({
       roomId: room.id,
-      userId: user.id,
-      displayName: joinRoomDto.displayName ?? user.displayName,
+      userId,
+      displayName,
       participantRole,
       socketId: joinRoomDto.socketId ?? null,
       micEnabled: participantRole !== 'spectator',

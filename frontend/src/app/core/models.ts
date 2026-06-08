@@ -59,6 +59,7 @@ export type RoomMessage = {
 export type StageLayout = 'fullscreen' | 'mainGuests' | 'grid';
 export type ScenePreset = 'midnight' | 'studioBlue' | 'emerald' | 'sunset' | 'custom';
 export type BannerStyle = 'lowerThird' | 'ticker' | 'headline';
+export type BannerSize = 'small' | 'medium' | 'large';
 export type SceneMediaType = 'none' | 'video';
 export type SceneMediaCommand = 'none' | 'play' | 'pause' | 'restart';
 
@@ -72,6 +73,7 @@ export type RoomSceneState = {
   bannerVisible: boolean;
   bannerText: string;
   bannerStyle: BannerStyle;
+  bannerSize: BannerSize;
   bannerBackground: string;
   bannerTextColor: string;
   sceneMediaType: SceneMediaType;

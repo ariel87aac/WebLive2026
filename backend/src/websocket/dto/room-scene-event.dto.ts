@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 
 import {
+  BannerSize,
   BannerStyle,
   SceneMediaCommand,
   SceneMediaType,
@@ -24,6 +25,7 @@ const scenePresets: ScenePreset[] = [
   'custom',
 ];
 const bannerStyles: BannerStyle[] = ['lowerThird', 'ticker', 'headline'];
+const bannerSizes: BannerSize[] = ['small', 'medium', 'large'];
 const sceneMediaTypes: SceneMediaType[] = ['none', 'video'];
 const sceneMediaCommands: SceneMediaCommand[] = [
   'none',
@@ -71,6 +73,10 @@ export class RoomSceneEventDto {
   @IsOptional()
   @IsIn(bannerStyles)
   bannerStyle?: BannerStyle;
+
+  @IsOptional()
+  @IsIn(bannerSizes)
+  bannerSize?: BannerSize;
 
   @IsOptional()
   @IsHexColor()

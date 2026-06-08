@@ -109,6 +109,7 @@ export class ConferenceComponent implements OnInit, OnDestroy {
   protected bannerVisible = signal(true);
   protected bannerText = signal('Bienvenidos a nuestra transmision en vivo');
   protected bannerStyle = signal<BannerStyle>('lowerThird');
+  protected bannerSize = signal<RoomSceneState['bannerSize']>('medium');
   protected bannerBackground = signal('#0f172a');
   protected bannerTextColor = signal('#ffffff');
   protected sceneMediaType = signal<RoomSceneState['sceneMediaType']>('none');
@@ -558,6 +559,11 @@ export class ConferenceComponent implements OnInit, OnDestroy {
     this.publishSceneState({ bannerStyle: style });
   }
 
+  protected setBannerSize(size: RoomSceneState['bannerSize']): void {
+    this.bannerSize.set(size);
+    this.publishSceneState({ bannerSize: size });
+  }
+
   protected setBannerBackground(color: string): void {
     this.bannerBackground.set(color);
     this.publishSceneState({ bannerBackground: color });
@@ -686,6 +692,7 @@ export class ConferenceComponent implements OnInit, OnDestroy {
     this.bannerVisible.set(sceneState.bannerVisible);
     this.bannerText.set(sceneState.bannerText);
     this.bannerStyle.set(sceneState.bannerStyle);
+    this.bannerSize.set(sceneState.bannerSize ?? 'medium');
     this.bannerBackground.set(sceneState.bannerBackground);
     this.bannerTextColor.set(sceneState.bannerTextColor);
     this.sceneMediaType.set(sceneState.sceneMediaType ?? 'none');

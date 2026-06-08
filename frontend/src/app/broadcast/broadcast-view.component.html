@@ -147,7 +147,15 @@
       </div>
 
       @if (bannerVisible() && bannerText().trim()) {
-        <div class="broadcast-banner" [class]="bannerStyle()">
+        <div
+          class="broadcast-banner"
+          [class.lowerThird]="bannerStyle() === 'lowerThird'"
+          [class.ticker]="bannerStyle() === 'ticker'"
+          [class.headline]="bannerStyle() === 'headline'"
+          [class.size-small]="bannerSize() === 'small'"
+          [class.size-medium]="bannerSize() === 'medium'"
+          [class.size-large]="bannerSize() === 'large'"
+        >
           <span>{{ bannerText() }}</span>
         </div>
       }

@@ -410,14 +410,34 @@ h2 {
 
 .broadcast-banner {
   position: absolute;
-  z-index: 4;
+  z-index: 8;
   display: flex;
   align-items: center;
   max-width: calc(100% - 48px);
   overflow: hidden;
   color: var(--banner-color);
+  font-size: var(--banner-font-size, 1.05rem);
   font-weight: 900;
+  line-height: 1.15;
   text-shadow: 0 1px 8px rgb(0 0 0 / 0.3);
+}
+
+.broadcast-banner.size-small {
+  --banner-font-size: 0.88rem;
+  --banner-height: 40px;
+  --banner-pad-x: 14px;
+}
+
+.broadcast-banner.size-medium {
+  --banner-font-size: 1.05rem;
+  --banner-height: 52px;
+  --banner-pad-x: 20px;
+}
+
+.broadcast-banner.size-large {
+  --banner-font-size: clamp(1.25rem, 2.5vw, 1.9rem);
+  --banner-height: 68px;
+  --banner-pad-x: 28px;
 }
 
 .broadcast-banner span {
@@ -429,8 +449,8 @@ h2 {
 .broadcast-banner.lowerThird {
   left: 32px;
   bottom: 32px;
-  min-height: 48px;
-  padding: 0 18px;
+  min-height: var(--banner-height, 52px);
+  padding: 0 var(--banner-pad-x, 20px);
   border-left: 5px solid var(--scene-accent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--banner-bg) 88%, transparent);
@@ -442,21 +462,21 @@ h2 {
   bottom: 0;
   left: 0;
   max-width: none;
-  min-height: 52px;
-  padding: 0 24px;
+  min-height: var(--banner-height, 52px);
+  padding: 0 var(--banner-pad-x, 20px);
   border-top: 3px solid var(--scene-accent);
   background: var(--banner-bg);
+  box-shadow: 0 -16px 42px rgb(0 0 0 / 0.24);
 }
 
 .broadcast-banner.headline {
   right: 50%;
   bottom: 36px;
-  min-height: 58px;
-  padding: 0 24px;
+  min-height: var(--banner-height, 58px);
+  padding: 0 var(--banner-pad-x, 24px);
   border: 1px solid color-mix(in srgb, var(--scene-accent) 55%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--banner-bg) 84%, transparent);
-  font-size: clamp(1rem, 2.4vw, 1.8rem);
   transform: translateX(50%);
 }
 
@@ -466,7 +486,7 @@ h2 {
 }
 
 .frame-main-guests .broadcast-banner.ticker {
-  bottom: 122px;
+  bottom: 0;
 }
 
 .side-panel {
@@ -1003,7 +1023,7 @@ button:disabled {
   }
 
   .frame-main-guests .broadcast-banner.ticker {
-    bottom: 86px;
+    bottom: 0;
   }
 
   .controls {
