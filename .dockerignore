@@ -1,0 +1,16 @@
+.git
+.DS_Store
+node_modules
+dist
+.angular
+coverage
+frontend/dist
+frontend/.angular
+frontend/node_modules
+backend/dist
+backend/node_modules
+certs
+*.log
+.env
+.env.local
+.env.production

@@ -1,14 +1,16 @@
-# Despliegue aaPanel - Limiteflix
+# Despliegue Docker en aaPanel - Limiteflix
 
-Dominios de produccion:
+Este despliegue usa contenedores para aislar el sistema de otros proyectos del VPS.
 
-- Frontend Angular: `https://live.limiteflix.com`
-- Backend NestJS + Socket.IO: `https://liveapi.limiteflix.com`
-- TURN/STUN Coturn: `liveturn.limiteflix.com`
+Dominios:
 
-## DNS
+- Frontend: `https://live.limiteflix.com`
+- Backend/API + Socket.IO: `https://liveapi.limiteflix.com`
+- TURN/STUN: `liveturn.limiteflix.com`
 
-Crear registros `A` apuntando a la IP publica del servidor:
+## 1. DNS
+
+Crear registros `A` hacia la IP publica del VPS:
 
 ```txt
 live.limiteflix.com      A    SERVER_PUBLIC_IP
@@ -16,9 +18,9 @@ liveapi.limiteflix.com   A    SERVER_PUBLIC_IP
 liveturn.limiteflix.com  A    SERVER_PUBLIC_IP
 ```
 
-## Puertos
+## 2. Puertos
 
-Abrir en firewall del proveedor y en aaPanel:
+Abrir en firewall del proveedor y aaPanel:
 
 ```txt
 80/tcp
@@ -30,71 +32,93 @@ Abrir en firewall del proveedor y en aaPanel:
 49152-65535/udp
 ```
 
-PostgreSQL `5432` debe quedar solo local o privado.
+Los puertos internos `3000` y `8080` quedan ligados a `127.0.0.1`, no publicos.
 
-## Backend
+## 3. Instalar Docker en aaPanel
 
-Copiar el ejemplo de produccion:
+Opcion recomendada:
+
+1. Entrar a aaPanel.
+2. Ir a `App Store`.
+3. Instalar `Docker`.
+4. Confirmar por SSH:
 
 ```bash
-cd /www/wwwroot/weblive2026/backend
-cp .env.production.example .env
+docker --version
+docker compose version
+```
+
+## 4. Subir el proyecto
+
+Ruta recomendada:
+
+```txt
+/www/wwwroot/weblive2026
+```
+
+Ejemplo con Git:
+
+```bash
+cd /www/wwwroot
+git clone TU_REPOSITORIO weblive2026
+cd weblive2026
+```
+
+## 5. Crear variables de produccion
+
+```bash
+cp .env.production.example .env.production
 ```
 
 Editar:
 
+```bash
+nano .env.production
+```
+
+Valores minimos:
+
 ```env
+POSTGRES_DB=weblive2026
+POSTGRES_USER=weblive
+POSTGRES_PASSWORD=CAMBIAR_PASSWORD_DB
+
+BACKEND_HOST_PORT=3000
+FRONTEND_HOST_PORT=8080
+
 NODE_ENV=production
-HOST=127.0.0.1
+HOST=0.0.0.0
 PORT=3000
+
 FRONTEND_URL=https://live.limiteflix.com
 FRONTEND_URLS=https://live.limiteflix.com
 HTTPS_ENABLED=false
+
+DATABASE_HOST=postgres
+DATABASE_PORT=5432
+DATABASE_NAME=weblive2026
+DATABASE_USER=weblive
+DATABASE_PASSWORD=CAMBIAR_PASSWORD_DB
+DATABASE_SSL=false
 DATABASE_SYNCHRONIZE=false
-JWT_SECRET=CAMBIAR_POR_UN_SECRETO_LARGO
+
+JWT_SECRET=CAMBIAR_POR_UN_SECRETO_LARGO_DE_32_O_MAS_CARACTERES
+JWT_EXPIRES_IN=1d
+
+TURN_CERT_DIR=/www/server/panel/vhost/cert/liveturn.limiteflix.com
 ```
 
-Instalar, compilar y migrar:
+`POSTGRES_PASSWORD` y `DATABASE_PASSWORD` deben ser iguales.
+
+## 6. Configurar frontend runtime
+
+Editar:
 
 ```bash
-npm install
-npm run build
-npm run migration:run:prod
-npm run start:prod
+nano deploy/frontend/weblive-config.js
 ```
 
-En aaPanel usar `Website -> Node.js Project`:
-
-```txt
-Project path: /www/wwwroot/weblive2026/backend
-Startup file: dist/main.js
-Port: 3000
-Run user: www
-```
-
-## Frontend
-
-Compilar Angular:
-
-```bash
-cd /www/wwwroot/weblive2026/frontend
-npm install
-npm run build
-```
-
-La carpeta publica del sitio debe ser:
-
-```txt
-/www/wwwroot/weblive2026/frontend/dist/frontend/browser
-```
-
-El archivo editable de configuracion runtime queda en:
-
-```txt
-/www/wwwroot/weblive2026/frontend/dist/frontend/browser/weblive-config.js
-```
-
-Contenido esperado:
+Contenido:
 
 ```js
 window.__WEBLIVE_CONFIG__ = {
@@ -102,61 +126,110 @@ window.__WEBLIVE_CONFIG__ = {
   socketBaseUrl: 'https://liveapi.limiteflix.com',
   turnUrl: 'turns:liveturn.limiteflix.com:5349',
   turnUsername: 'weblive',
-  turnCredential: 'CHANGE_ME_TURN_PASSWORD',
+  turnCredential: 'CAMBIAR_PASSWORD_TURN',
 };
 ```
 
-## Nginx aaPanel
+## 7. Configurar Coturn
 
-Crear dos sitios:
+Editar:
+
+```bash
+nano deploy/coturn/turnserver.conf
+```
+
+Cambiar:
+
+```txt
+external-ip=SERVER_PUBLIC_IP
+user=weblive:CAMBIAR_PASSWORD_TURN
+```
+
+El password TURN debe coincidir con `turnCredential` en `deploy/frontend/weblive-config.js`.
+
+## 8. Crear certificados SSL en aaPanel
+
+Crear sitios o certificados para:
+
+- `live.limiteflix.com`
+- `liveapi.limiteflix.com`
+- `liveturn.limiteflix.com`
+
+aaPanel debe dejar los certificados en rutas similares a:
+
+```txt
+/www/server/panel/vhost/cert/live.limiteflix.com
+/www/server/panel/vhost/cert/liveapi.limiteflix.com
+/www/server/panel/vhost/cert/liveturn.limiteflix.com
+```
+
+El contenedor Coturn monta el certificado de `liveturn.limiteflix.com`.
+
+## 9. Levantar contenedores
+
+Construir y levantar:
+
+```bash
+docker compose -f docker-compose.production.yml --env-file .env.production up -d --build
+```
+
+Si se desea probar la sintaxis con el ejemplo antes de crear secretos:
+
+```bash
+APP_ENV_FILE=.env.production.example docker compose -f docker-compose.production.yml --env-file .env.production.example config
+```
+
+Ver estado:
+
+```bash
+docker compose -f docker-compose.production.yml --env-file .env.production ps
+```
+
+Ver logs:
+
+```bash
+docker compose -f docker-compose.production.yml --env-file .env.production logs -f backend
+docker compose -f docker-compose.production.yml --env-file .env.production logs -f coturn
+```
+
+La primera ejecucion corre migraciones automaticamente mediante el servicio `migrate`.
+
+## 10. Configurar Nginx aaPanel
+
+Crear dos sitios en aaPanel:
 
 - `live.limiteflix.com`
 - `liveapi.limiteflix.com`
 
-Activar SSL en ambos desde aaPanel.
+Activar SSL en ambos.
 
-Usar como base:
-
-- `docs/aapanel-live.limiteflix.com.nginx.conf`
-- `docs/aapanel-liveapi.limiteflix.com.nginx.conf`
-
-## Coturn
-
-Instalar Coturn:
-
-```bash
-sudo apt update
-sudo apt install coturn
-```
-
-Usar como base:
+Configurar `live.limiteflix.com` usando:
 
 ```txt
-docs/liveturn.limiteflix.com.turnserver.conf
+docs/aapanel-live.limiteflix.com.nginx.conf
 ```
 
-Reemplazar:
+Ese sitio proxifica al frontend container:
 
 ```txt
-SERVER_PUBLIC_IP
-CHANGE_ME_TURN_PASSWORD
+http://127.0.0.1:8080
 ```
 
-Copiar a:
+Configurar `liveapi.limiteflix.com` usando:
 
 ```txt
-/etc/turnserver.conf
+docs/aapanel-liveapi.limiteflix.com.nginx.conf
 ```
 
-Habilitar Coturn:
+Ese sitio proxifica al backend container:
 
-```bash
-sudo systemctl enable coturn
-sudo systemctl restart coturn
-sudo systemctl status coturn
+```txt
+http://127.0.0.1:3000
 ```
 
-## Verificacion
+Debe conservar la seccion `/socket.io/` con headers `Upgrade`.
+
+## 11. Verificar
 
 API:
 
@@ -170,6 +243,59 @@ Frontend:
 https://live.limiteflix.com
 ```
 
-Socket.IO debe conectar desde la consola del navegador sin errores CORS.
+Contenedores:
 
-WebRTC debe probarse con dos redes diferentes, por ejemplo una computadora en WiFi y un celular con datos moviles. Si en red local funciona pero en datos moviles no, revisar Coturn/firewall.
+```bash
+docker compose -f docker-compose.production.yml --env-file .env.production ps
+```
+
+Migraciones:
+
+```bash
+docker compose -f docker-compose.production.yml --env-file .env.production run --rm backend npm run migration:show:prod
+```
+
+## 12. Actualizar una nueva version
+
+```bash
+cd /www/wwwroot/weblive2026
+git pull
+docker compose -f docker-compose.production.yml --env-file .env.production up -d --build
+docker image prune -f
+```
+
+## 13. Backup de base de datos
+
+Crear backup:
+
+```bash
+docker exec -t weblive-postgres pg_dump -U weblive weblive2026 > backup-weblive2026.sql
+```
+
+Restaurar backup:
+
+```bash
+cat backup-weblive2026.sql | docker exec -i weblive-postgres psql -U weblive -d weblive2026
+```
+
+## 14. Apagar o reiniciar
+
+Reiniciar:
+
+```bash
+docker compose -f docker-compose.production.yml --env-file .env.production restart
+```
+
+Apagar sin borrar datos:
+
+```bash
+docker compose -f docker-compose.production.yml --env-file .env.production stop
+```
+
+Apagar y borrar contenedores, conservando volumen de PostgreSQL:
+
+```bash
+docker compose -f docker-compose.production.yml --env-file .env.production down
+```
+
+No usar `docker compose down -v` salvo que se quiera borrar la base de datos.

@@ -114,7 +114,7 @@ Desarrollar una plataforma web responsive para videoconferencias y transmisiones
 | Nginx | Reverse proxy, SSL y sitios web |
 | PostgreSQL | Base de datos |
 | Coturn | Servidor STUN/TURN para WebRTC |
-| Docker Compose | PostgreSQL local de desarrollo |
+| Docker Compose | Orquestacion de contenedores en desarrollo y produccion |
 | TypeORM migrations | Control versionado del esquema |
 
 ### 3.4 Dominios de produccion
@@ -731,11 +731,11 @@ En produccion no se aceptan origenes LAN automaticamente.
 
 | Servicio | Dominio/Puerto | Descripcion |
 | --- | --- | --- |
-| Frontend Angular | `https://live.limiteflix.com` | SPA servida por Nginx. |
-| Backend NestJS | `127.0.0.1:3000` interno | API REST y Socket.IO. |
+| Frontend Angular | `https://live.limiteflix.com` | SPA servida por contenedor Nginx y proxy aaPanel. |
+| Backend NestJS | `127.0.0.1:3000` interno | API REST y Socket.IO en contenedor. |
 | API publica | `https://liveapi.limiteflix.com` | Reverse proxy Nginx. |
-| PostgreSQL | `127.0.0.1:5432` | Base de datos. |
-| Coturn | `liveturn.limiteflix.com:3478/5349` | STUN/TURN. |
+| PostgreSQL | Red Docker interna | Base de datos en contenedor. |
+| Coturn | `liveturn.limiteflix.com:3478/5349` | STUN/TURN en contenedor con `network_mode: host`. |
 
 ### 11.2 Variables backend de produccion
 

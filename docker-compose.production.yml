@@ -1,0 +1,96 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: weblive-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-weblive2026}
+      POSTGRES_USER: ${POSTGRES_USER:-weblive}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - weblive_internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-weblive} -d ${POSTGRES_DB:-weblive2026}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  migrate:
+    build:
+      context: ./backend
+    container_name: weblive-migrate
+    restart: "no"
+    env_file:
+      - ${APP_ENV_FILE:-.env.production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["npm", "run", "migration:run:prod"]
+    networks:
+      - weblive_internal
+
+  backend:
+    build:
+      context: ./backend
+    container_name: weblive-backend
+    restart: unless-stopped
+    env_file:
+      - ${APP_ENV_FILE:-.env.production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${BACKEND_HOST_PORT:-3000}:3000"
+    networks:
+      - weblive_internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: weblive-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${FRONTEND_HOST_PORT:-8080}:80"
+    volumes:
+      - ./deploy/frontend/weblive-config.js:/usr/share/nginx/html/weblive-config.js:ro
+    networks:
+      - weblive_internal
+
+  coturn:
+    image: coturn/coturn:latest
+    container_name: weblive-coturn
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./deploy/coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - ${TURN_CERT_DIR:-/www/server/panel/vhost/cert/liveturn.limiteflix.com}:/certs/liveturn.limiteflix.com:ro
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+
+networks:
+  weblive_internal:
+    driver: bridge
+
+volumes:
+  postgres_data:
